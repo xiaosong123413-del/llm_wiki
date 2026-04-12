@@ -8,26 +8,26 @@ export interface WikiTemplate {
   extraDirs: string[]
 }
 
-const BASE_SCHEMA_TYPES = `| entity | wiki/entities/ | Named things (people, tools, organizations, datasets) |
-| concept | wiki/concepts/ | Ideas, techniques, phenomena, frameworks |
-| source | wiki/sources/ | Papers, articles, talks, books, blog posts |
-| query | wiki/queries/ | Open questions under active investigation |
-| comparison | wiki/comparisons/ | Side-by-side analysis of related entities |
-| synthesis | wiki/synthesis/ | Cross-cutting summaries and conclusions |
-| overview | wiki/ | High-level project summary (one per project) |`
+const BASE_SCHEMA_TYPES = `| entity | wiki/entities/ | 命名实体（人物、工具、组织、数据集） |
+| concept | wiki/concepts/ | 思想、技术、现象、框架 |
+| source | wiki/sources/ | 论文、文章、演讲、书籍、博客 |
+| query | wiki/queries/ | 正在调查的开放性问题 |
+| comparison | wiki/comparisons/ | 相关实体的横向对比分析 |
+| synthesis | wiki/synthesis/ | 跨素材的综合总结与结论 |
+| overview | wiki/ | 项目高层概览（每个项目一个） |`
 
-const BASE_NAMING = `- Files: \`kebab-case.md\`
-- Entities: match official name where possible (e.g., \`openai.md\`, \`gpt-4.md\`)
-- Concepts: descriptive noun phrases (e.g., \`chain-of-thought.md\`)
-- Sources: \`author-year-slug.md\` (e.g., \`wei-2022-cot.md\`)
-- Queries: question as slug (e.g., \`does-scale-improve-reasoning.md\`)`
+const BASE_NAMING = `- 文件名：\`kebab-case.md\`（短横线小写）
+- 实体：尽量与官方名称一致（如 \`openai.md\`、\`gpt-4.md\`）
+- 概念：描述性名词短语（如 \`chain-of-thought.md\`）
+- 素材：\`作者-年份-标题缩写.md\`（如 \`wei-2022-cot.md\`）
+- 问题：以问题作为文件名（如 \`does-scale-improve-reasoning.md\`）`
 
-const BASE_FRONTMATTER = `All pages must include YAML frontmatter:
+const BASE_FRONTMATTER = `所有页面必须包含 YAML frontmatter：
 
 \`\`\`yaml
 ---
 type: entity | concept | source | query | comparison | synthesis | overview
-title: Human-readable title
+title: 人类可读标题
 tags: []
 related: []
 created: YYYY-MM-DD
@@ -35,7 +35,7 @@ updated: YYYY-MM-DD
 ---
 \`\`\`
 
-Source pages also include:
+素材页面额外包含：
 \`\`\`yaml
 authors: []
 year: YYYY
@@ -43,261 +43,261 @@ url: ""
 venue: ""
 \`\`\``
 
-const BASE_INDEX_FORMAT = `\`wiki/index.md\` lists all pages grouped by type. Each entry:
+const BASE_INDEX_FORMAT = `\`wiki/index.md\` 按类型分组列出所有页面，每条格式：
 \`\`\`
-- [[page-slug]] — one-line description
+- [[页面文件名]] — 一行说明
 \`\`\``
 
-const BASE_LOG_FORMAT = `\`wiki/log.md\` records activity in reverse chronological order:
+const BASE_LOG_FORMAT = `\`wiki/log.md\` 按倒序记录活动：
 \`\`\`
 ## YYYY-MM-DD
 
-- Action taken / finding noted
+- 执行的操作 / 记录的发现
 \`\`\``
 
-const BASE_CROSSREF = `- Use \`[[page-slug]]\` syntax to link between wiki pages
-- Every entity and concept should appear in \`wiki/index.md\`
-- Queries link to the sources and concepts they draw on
-- Synthesis pages cite all contributing sources via \`related:\``
+const BASE_CROSSREF = `- 使用 \`[[页面文件名]]\` 语法在 wiki 页面之间建立链接
+- 每个实体和概念都应出现在 \`wiki/index.md\` 中
+- 问题页面链接到它所引用的素材和概念
+- 综合页面通过 \`related:\` 引用所有相关素材`
 
-const BASE_CONTRADICTION = `When sources contradict each other:
-1. Note the contradiction in the relevant concept or entity page
-2. Create or update a query page to track the open question
-3. Link both sources from the query page
-4. Resolve in a synthesis page once sufficient evidence exists`
+const BASE_CONTRADICTION = `当素材之间出现矛盾时：
+1. 在相关概念或实体页面中记录矛盾
+2. 创建或更新问题页面以追踪这个开放性问题
+3. 从问题页面链接到两个素材
+4. 积累足够证据后在综合页面中解决`
 
 const researchTemplate: WikiTemplate = {
   id: "research",
-  name: "Research",
-  description: "Deep-dive research with hypothesis tracking and methodology notes",
+  name: "研究",
+  description: "深度研究，含假说追踪与方法论记录",
   icon: "🔬",
   extraDirs: ["wiki/methodology", "wiki/findings", "wiki/thesis"],
-  schema: `# Wiki Schema — Research Deep-Dive
+  schema: `# Wiki 结构规范 — 深度研究
 
-## Page Types
+## 页面类型
 
-| Type | Directory | Purpose |
-|------|-----------|---------|
+| 类型 | 目录 | 用途 |
+|------|------|------|
 ${BASE_SCHEMA_TYPES}
-| thesis | wiki/thesis/ | Working hypothesis and its evolution over time |
-| methodology | wiki/methodology/ | Research methods, protocols, and study designs |
-| finding | wiki/findings/ | Individual empirical results or observations |
+| thesis | wiki/thesis/ | 工作假说及其演进过程 |
+| methodology | wiki/methodology/ | 研究方法、协议与研究设计 |
+| finding | wiki/findings/ | 单条实证结果或观察 |
 
-## Naming Conventions
+## 命名规范
 
 ${BASE_NAMING}
-- Theses: hypothesis as slug (e.g., \`scaling-improves-reasoning.md\`)
-- Methodologies: method name (e.g., \`systematic-review.md\`, \`ablation-study.md\`)
-- Findings: descriptive slug (e.g., \`larger-models-better-few-shot.md\`)
+- 假说：以假设为文件名（如 \`scaling-improves-reasoning.md\`）
+- 方法论：方法名称（如 \`systematic-review.md\`、\`ablation-study.md\`）
+- 发现：描述性文件名（如 \`larger-models-better-few-shot.md\`）
 
 ## Frontmatter
 
 ${BASE_FRONTMATTER}
 
-Thesis pages also include:
+假说页面额外包含：
 \`\`\`yaml
 confidence: low | medium | high
 status: speculative | supported | refuted | settled
 \`\`\`
 
-Finding pages also include:
+发现页面额外包含：
 \`\`\`yaml
-source: "[[source-slug]]"
+source: "[[素材文件名]]"
 confidence: low | medium | high
 replicated: true | false | null
 \`\`\`
 
-## Index Format
+## 索引格式
 
 ${BASE_INDEX_FORMAT}
 
-## Log Format
+## 日志格式
 
 ${BASE_LOG_FORMAT}
 
-## Cross-referencing Rules
+## 交叉引用规则
 
 ${BASE_CROSSREF}
-- Findings link back to their source via the \`source:\` frontmatter field
-- Thesis pages reference supporting and refuting findings via \`related:\`
-- Methodology pages are cited by the findings that used them
+- 发现页面通过 \`source:\` frontmatter 字段链接回对应素材
+- 假说页面通过 \`related:\` 引用支持和反驳该假说的发现
+- 方法论页面被使用该方法的发现引用
 
-## Contradiction Handling
+## 矛盾处理
 
 ${BASE_CONTRADICTION}
 
-## Research-Specific Conventions
+## 研究特有约定
 
-- Keep the thesis pages updated as evidence accumulates — they are living documents
-- Every finding should assess replication status when known
-- Methodology pages explain the *why* (rationale) not just the *how*
-- Distinguish between direct evidence and inference in finding pages
+- 随证据积累持续更新假说页面——它们是动态文档
+- 每条发现应在已知情况下评估可复现性
+- 方法论页面解释"为什么"（原理）而不只是"如何"（步骤）
+- 在发现页面中区分直接证据与推断
 `,
-  purpose: `# Project Purpose — Research Deep-Dive
+  purpose: `# 项目目的 — 深度研究
 
-## Research Question
+## 研究问题
 
-<!-- State the central question this research aims to answer. Be specific and falsifiable. -->
-
->
-
-## Hypothesis / Working Thesis
-
-<!-- Your current best guess. This will evolve — update it as evidence accumulates. -->
+<!-- 陈述本研究要回答的核心问题，要具体、可证伪。 -->
 
 >
 
-## Background
+## 假说 / 工作论点
 
-<!-- What prior work or context motivates this research? What gap does it fill? -->
+<!-- 你目前最好的猜测，会随证据积累而更新。 -->
 
-## Sub-questions
+>
 
-<!-- Break down the main question into tractable sub-questions. -->
+## 背景
+
+<!-- 哪些已有工作或背景促成了这项研究？它填补了什么空白？ -->
+
+## 子问题
+
+<!-- 将主问题拆解为可操作的子问题。 -->
 
 1.
 2.
 3.
 4.
 
-## Scope
+## 研究范围
 
-**In scope:**
+**范围内：**
 -
 
-**Out of scope:**
+**范围外：**
 -
 
-## Methodology
+## 研究方法
 
-<!-- How will you investigate this? What types of sources or experiments are relevant? -->
-
--
-
-## Success Criteria
-
-<!-- How will you know when you have a satisfying answer? -->
+<!-- 你将如何展开调查？哪类素材或实验是相关的？ -->
 
 -
 
-## Current Status
+## 成功标准
 
-> Not started — update this section as research progresses.
+<!-- 什么样的结果代表你找到了满意的答案？ -->
+
+-
+
+## 当前状态
+
+> 尚未开始——随研究进展更新此部分。
 `,
 }
 
 const readingTemplate: WikiTemplate = {
   id: "reading",
-  name: "Reading",
-  description: "Track a book's characters, themes, plot threads, and chapter notes",
+  name: "阅读",
+  description: "追踪书中的人物、主题、情节线索与章节笔记",
   icon: "📚",
   extraDirs: ["wiki/characters", "wiki/themes", "wiki/plot-threads", "wiki/chapters"],
-  schema: `# Wiki Schema — Reading a Book
+  schema: `# Wiki 结构规范 — 阅读记录
 
-## Page Types
+## 页面类型
 
-| Type | Directory | Purpose |
-|------|-----------|---------|
+| 类型 | 目录 | 用途 |
+|------|------|------|
 ${BASE_SCHEMA_TYPES}
-| character | wiki/characters/ | People and figures in the book |
-| theme | wiki/themes/ | Recurring ideas, motifs, and symbolic threads |
-| plot-thread | wiki/plot-threads/ | Storylines or narrative arcs being tracked |
-| chapter | wiki/chapters/ | Per-chapter notes and summaries |
+| character | wiki/characters/ | 书中的人物与角色 |
+| theme | wiki/themes/ | 反复出现的思想、主题与象征线索 |
+| plot-thread | wiki/plot-threads/ | 正在追踪的情节线或叙事弧 |
+| chapter | wiki/chapters/ | 逐章笔记与摘要 |
 
-## Naming Conventions
+## 命名规范
 
 ${BASE_NAMING}
-- Characters: character name in kebab-case (e.g., \`elizabeth-bennet.md\`)
-- Themes: thematic noun phrase (e.g., \`social-class-mobility.md\`, \`deception-vs-honesty.md\`)
-- Plot threads: arc description (e.g., \`darcys-redemption-arc.md\`)
-- Chapters: \`ch-NN-slug.md\` (e.g., \`ch-01-opening-scene.md\`)
+- 人物：人物名转 kebab-case（如 \`elizabeth-bennet.md\`）
+- 主题：主题性名词短语（如 \`social-class-mobility.md\`）
+- 情节线：弧线描述（如 \`darcys-redemption-arc.md\`）
+- 章节：\`ch-NN-标题缩写.md\`（如 \`ch-01-opening-scene.md\`）
 
 ## Frontmatter
 
 ${BASE_FRONTMATTER}
 
-Character pages also include:
+人物页面额外包含：
 \`\`\`yaml
-first_appearance: "Ch. N"
+first_appearance: "第 N 章"
 role: protagonist | antagonist | supporting | minor
 \`\`\`
 
-Chapter pages also include:
+章节页面额外包含：
 \`\`\`yaml
 chapter: N
 pages: "1-24"
 \`\`\`
 
-## Index Format
+## 索引格式
 
 ${BASE_INDEX_FORMAT}
 
-## Log Format
+## 日志格式
 
 ${BASE_LOG_FORMAT}
 
-## Cross-referencing Rules
+## 交叉引用规则
 
 ${BASE_CROSSREF}
-- Chapter notes reference characters appearing in that chapter via \`related:\`
-- Theme pages link to the chapters where the theme is most prominent
-- Plot thread pages list chapters that advance the arc
+- 章节笔记通过 \`related:\` 引用该章出现的人物
+- 主题页面链接到该主题最突出的章节
+- 情节线页面列出推动该弧线发展的章节
 
-## Contradiction Handling
+## 矛盾处理
 
 ${BASE_CONTRADICTION}
 
-## Reading-Specific Conventions
+## 阅读特有约定
 
-- Chapter pages are written during or immediately after reading — capture fresh reactions
-- Distinguish between plot summary and personal interpretation in chapter notes
-- Theme pages should track *development* across the book, not just state that a theme exists
-- Flag unresolved plot threads with status: \`open\` until resolved
-- Note page numbers for important quotes to enable re-finding later
+- 章节页面在阅读时或阅读后立即记录——捕捉第一反应
+- 在章节笔记中区分情节摘要与个人解读
+- 主题页面应追踪主题在全书中的"发展"，而不只是声明主题存在
+- 用 \`status: open\` 标注未解决的情节线，直至结局揭晓
+- 记录重要引文的页码，便于日后回查
 `,
-  purpose: `# Project Purpose — Reading
+  purpose: `# 项目目的 — 阅读记录
 
-## Book Details
+## 书籍信息
 
-**Title:**
-**Author:**
-**Year:**
-**Genre:**
+**书名：**
+**作者：**
+**出版年：**
+**类型：**
 
-## Why I'm Reading This
+## 为什么读这本书
 
-<!-- What drew you to this book? What do you hope to get from it? -->
+<!-- 是什么吸引你读这本书？你希望从中获得什么？ -->
 
-## Key Themes to Track
+## 希望追踪的核心主题
 
-<!-- What thematic threads do you expect or want to follow? -->
+<!-- 你预期或想要追踪哪些主题线索？ -->
 
 1.
 2.
 3.
 
-## Questions Going In
+## 带着疑问出发
 
-<!-- What do you want answered or explored by the end? -->
+<!-- 你希望在阅读结束时得到回答或探索的问题。 -->
 
 1.
 2.
 
-## Reading Pace
+## 阅读进度
 
-**Started:**
-**Target finish:**
-**Current chapter:**
+**开始时间：**
+**目标完成：**
+**当前章节：**
 
-## First Impressions
+## 初步印象
 
-<!-- Update after first chapter or first sitting. -->
+<!-- 读完第一章或第一次阅读后更新。 -->
 
 >
 
-## Final Takeaways
+## 最终感悟
 
-<!-- Fill in when finished. What did this book teach you? -->
+<!-- 读完后填写，这本书给你带来了什么？ -->
 
 >
 `,
@@ -305,127 +305,127 @@ ${BASE_CONTRADICTION}
 
 const personalTemplate: WikiTemplate = {
   id: "personal",
-  name: "Personal Growth",
-  description: "Track goals, habits, reflections, and journal entries for self-improvement",
+  name: "个人成长",
+  description: "追踪目标、习惯、反思与日记，用于自我提升",
   icon: "🌱",
   extraDirs: ["wiki/goals", "wiki/habits", "wiki/reflections", "wiki/journal"],
-  schema: `# Wiki Schema — Personal Growth
+  schema: `# Wiki 结构规范 — 个人成长
 
-## Page Types
+## 页面类型
 
-| Type | Directory | Purpose |
-|------|-----------|---------|
+| 类型 | 目录 | 用途 |
+|------|------|------|
 ${BASE_SCHEMA_TYPES}
-| goal | wiki/goals/ | Specific outcomes you are working toward |
-| habit | wiki/habits/ | Recurring behaviours and their tracking |
-| reflection | wiki/reflections/ | Periodic reviews and lessons learned |
-| journal | wiki/journal/ | Freeform daily or session entries |
+| goal | wiki/goals/ | 你正在努力实现的具体目标 |
+| habit | wiki/habits/ | 习惯行为及其追踪 |
+| reflection | wiki/reflections/ | 阶段性复盘与总结 |
+| journal | wiki/journal/ | 自由书写的日常或随笔记录 |
 
-## Naming Conventions
+## 命名规范
 
 ${BASE_NAMING}
-- Goals: outcome as slug (e.g., \`run-a-marathon.md\`, \`learn-spanish.md\`)
-- Habits: behaviour name (e.g., \`daily-meditation.md\`, \`morning-pages.md\`)
-- Reflections: type + date (e.g., \`weekly-2024-03.md\`, \`quarterly-2024-q1.md\`)
-- Journal: date slug (e.g., \`2024-03-15.md\`)
+- 目标：以结果为文件名（如 \`run-a-marathon.md\`、\`learn-spanish.md\`）
+- 习惯：行为名称（如 \`daily-meditation.md\`、\`morning-pages.md\`）
+- 反思：类型+日期（如 \`weekly-2024-03.md\`、\`quarterly-2024-q1.md\`）
+- 日记：日期文件名（如 \`2024-03-15.md\`）
 
 ## Frontmatter
 
 ${BASE_FRONTMATTER}
 
-Goal pages also include:
+目标页面额外包含：
 \`\`\`yaml
 target_date: YYYY-MM-DD
 status: active | paused | achieved | abandoned
 progress: 0-100
 \`\`\`
 
-Habit pages also include:
+习惯页面额外包含：
 \`\`\`yaml
 frequency: daily | weekly | monthly
 streak: N
 status: active | paused | dropped
 \`\`\`
 
-Reflection pages also include:
+反思页面额外包含：
 \`\`\`yaml
 period: weekly | monthly | quarterly | annual
 \`\`\`
 
-## Index Format
+## 索引格式
 
 ${BASE_INDEX_FORMAT}
 
-## Log Format
+## 日志格式
 
 ${BASE_LOG_FORMAT}
 
-## Cross-referencing Rules
+## 交叉引用规则
 
 ${BASE_CROSSREF}
-- Reflection pages reference the goals and habits reviewed during that period
-- Goals link to the habits that support them via \`related:\`
-- Journal entries can reference goals and reflections inline with \`[[slug]]\`
+- 反思页面引用该周期内复盘的目标和习惯
+- 目标通过 \`related:\` 链接到支持它的习惯
+- 日记可以用 \`[[文件名]]\` 内联引用目标和反思
 
-## Contradiction Handling
+## 矛盾处理
 
 ${BASE_CONTRADICTION}
 
-## Personal Growth Conventions
+## 个人成长特有约定
 
-- Be honest in journal and reflection entries — this wiki is for you, not an audience
-- Update goal progress fields regularly; stale data is worse than no data
-- Distinguish between outcome goals (what you want) and process goals (what you will do)
-- Reflect on *why* habits succeed or fail, not just whether they did
-- Use the synthesis directory for cross-cutting insights that span multiple goals or periods
+- 日记和反思要诚实——这个 wiki 是给自己的，不是给读者看的
+- 定期更新目标进度字段；过时的数据比没有数据更糟
+- 区分结果目标（你想要什么）与过程目标（你将做什么）
+- 反思习惯为什么成功或失败，而不仅仅是记录结果
+- 用综合目录记录跨越多个目标或阶段的洞察
 `,
-  purpose: `# Project Purpose — Personal Growth
+  purpose: `# 项目目的 — 个人成长
 
-## Focus Areas
+## 关注领域
 
-<!-- What areas of your life or self are you actively working on? -->
-
-1.
-2.
-3.
-
-## Motivation
-
-<!-- Why now? What prompted you to start this wiki? -->
-
-## Current Goals (Summary)
-
-<!-- High-level list — create detailed goal pages in wiki/goals/ -->
-
-- [ ]
-- [ ]
-- [ ]
-
-## Active Habits
-
-<!-- High-level list — create detailed habit pages in wiki/habits/ -->
-
--
--
-
-## Review Cadence
-
-**Daily journal:** Yes / No
-**Weekly reflection:**
-**Monthly reflection:**
-**Quarterly reflection:**
-
-## Guiding Principles
-
-<!-- What values or principles guide your growth work? -->
+<!-- 你目前正在积极提升自己的哪些方面？ -->
 
 1.
 2.
 3.
 
-## This Year's Theme
+## 动力来源
 
-<!-- One phrase or sentence that captures your intention for the year. -->
+<!-- 为什么是现在？是什么促使你开始这个知识库？ -->
+
+## 当前目标（概览）
+
+<!-- 高层列表——在 wiki/goals/ 中创建详细目标页面 -->
+
+- [ ]
+- [ ]
+- [ ]
+
+## 当前习惯
+
+<!-- 高层列表——在 wiki/habits/ 中创建详细习惯页面 -->
+
+-
+-
+
+## 复盘节奏
+
+**每日日记：** 是 / 否
+**每周反思：**
+**每月反思：**
+**每季反思：**
+
+## 指导原则
+
+<!-- 哪些价值观或原则引导你的成长工作？ -->
+
+1.
+2.
+3.
+
+## 今年的主题
+
+<!-- 一句话概括你对这一年的意图。 -->
 
 >
 `,
@@ -433,50 +433,50 @@ ${BASE_CONTRADICTION}
 
 const businessTemplate: WikiTemplate = {
   id: "business",
-  name: "Business",
-  description: "Manage meetings, decisions, projects, and stakeholder context for a team",
+  name: "商业",
+  description: "管理会议、决策、项目与利益相关方信息",
   icon: "💼",
   extraDirs: ["wiki/meetings", "wiki/decisions", "wiki/projects", "wiki/stakeholders"],
-  schema: `# Wiki Schema — Business / Team
+  schema: `# Wiki 结构规范 — 商业 / 团队
 
-## Page Types
+## 页面类型
 
-| Type | Directory | Purpose |
-|------|-----------|---------|
+| 类型 | 目录 | 用途 |
+|------|------|------|
 ${BASE_SCHEMA_TYPES}
-| meeting | wiki/meetings/ | Meeting notes, agendas, and action items |
-| decision | wiki/decisions/ | Architectural or strategic decisions (ADR-style) |
-| project | wiki/projects/ | Project briefs, status, and retrospectives |
-| stakeholder | wiki/stakeholders/ | People, teams, and organisations involved |
+| meeting | wiki/meetings/ | 会议记录、议程与行动项 |
+| decision | wiki/decisions/ | 架构或战略决策（ADR 风格）|
+| project | wiki/projects/ | 项目简介、状态与复盘 |
+| stakeholder | wiki/stakeholders/ | 涉及的人员、团队与组织 |
 
-## Naming Conventions
+## 命名规范
 
 ${BASE_NAMING}
-- Meetings: \`YYYY-MM-DD-slug.md\` (e.g., \`2024-03-15-sprint-planning.md\`)
-- Decisions: \`NNN-slug.md\` (e.g., \`001-adopt-typescript.md\`)
-- Projects: descriptive slug (e.g., \`payments-redesign.md\`)
-- Stakeholders: name or team in kebab-case (e.g., \`alice-chen.md\`, \`platform-team.md\`)
+- 会议：\`YYYY-MM-DD-标题缩写.md\`（如 \`2024-03-15-sprint-planning.md\`）
+- 决策：\`NNN-标题缩写.md\`（如 \`001-adopt-typescript.md\`）
+- 项目：描述性文件名（如 \`payments-redesign.md\`）
+- 利益相关方：姓名或团队转 kebab-case（如 \`alice-chen.md\`、\`platform-team.md\`）
 
 ## Frontmatter
 
 ${BASE_FRONTMATTER}
 
-Meeting pages also include:
+会议页面额外包含：
 \`\`\`yaml
 date: YYYY-MM-DD
 attendees: []
 action_items: []
 \`\`\`
 
-Decision pages also include:
+决策页面额外包含：
 \`\`\`yaml
 status: proposed | accepted | deprecated | superseded
 deciders: []
 date: YYYY-MM-DD
-supersedes: ""   # slug of ADR this replaces, if any
+supersedes: ""   # 被本决策替代的 ADR 文件名（如有）
 \`\`\`
 
-Project pages also include:
+项目页面额外包含：
 \`\`\`yaml
 status: planned | active | on-hold | complete | cancelled
 owner: ""
@@ -484,106 +484,106 @@ start_date: YYYY-MM-DD
 target_date: YYYY-MM-DD
 \`\`\`
 
-## Index Format
+## 索引格式
 
 ${BASE_INDEX_FORMAT}
 
-## Log Format
+## 日志格式
 
 ${BASE_LOG_FORMAT}
 
-## Cross-referencing Rules
+## 交叉引用规则
 
 ${BASE_CROSSREF}
-- Meeting notes reference attendees via \`attendees:\` frontmatter and \`[[stakeholder-slug]]\` links
-- Decision pages link to the meetings where the decision was discussed
-- Project pages link to their key decisions via \`related:\`
-- Stakeholder pages list projects and decisions they are involved in
+- 会议记录通过 \`attendees:\` frontmatter 和 \`[[利益相关方文件名]]\` 引用参会者
+- 决策页面链接到讨论该决策的会议
+- 项目页面通过 \`related:\` 链接关键决策
+- 利益相关方页面列出其参与的项目和决策
 
-## Contradiction Handling
+## 矛盾处理
 
 ${BASE_CONTRADICTION}
 
-## Business-Specific Conventions
+## 商业特有约定
 
-- Write meeting notes during or within 24 hours — memory fades fast
-- Action items must have a named owner and due date to be actionable
-- Decision pages capture *context and consequences*, not just the decision itself
-- Deprecated decisions should link to the decision that superseded them
-- Projects should have a retrospective section added on completion
+- 会议记录应在会议中或会后 24 小时内完成——记忆衰退很快
+- 行动项必须有负责人和截止日期才算可执行
+- 决策页面记录"背景与后果"，不只是决策本身
+- 已废弃的决策应链接到替代它的新决策
+- 项目完成后应补充复盘部分
 `,
-  purpose: `# Project Purpose — Business / Team
+  purpose: `# 项目目的 — 商业 / 团队
 
-## Business Context
+## 业务背景
 
-**Organisation / Team:**
-**Domain:**
-**Time period covered:**
+**组织 / 团队：**
+**领域：**
+**覆盖时间段：**
 
-## Objectives
+## 目标
 
-<!-- What are the top-level business objectives this wiki supports? -->
+<!-- 这个知识库支持哪些顶层业务目标？ -->
 
 1.
 2.
 3.
 
-## Key Projects
+## 主要项目
 
-<!-- High-level list — create detailed pages in wiki/projects/ -->
-
--
--
-
-## Key Stakeholders
-
-<!-- Who are the primary people or teams involved? -->
+<!-- 高层列表——在 wiki/projects/ 中创建详细页面 -->
 
 -
 -
 
-## Open Decisions
+## 主要利益相关方
 
-<!-- Decisions currently in flight — create ADR pages in wiki/decisions/ -->
+<!-- 涉及的主要人员或团队是谁？ -->
+
+-
+-
+
+## 待定决策
+
+<!-- 正在推进中的决策——在 wiki/decisions/ 中创建 ADR 页面 -->
 
 -
 -
 
-## Metrics / Success Criteria
+## 衡量指标 / 成功标准
 
-<!-- How does the team measure progress toward its objectives? -->
-
--
-
-## Constraints and Risks
-
-<!-- Known constraints (budget, time, org) and risks to track -->
+<!-- 团队如何衡量目标进展？ -->
 
 -
 
-## Review Cadence
+## 约束与风险
 
-**Weekly sync notes:**
-**Monthly status update:**
-**Quarterly retrospective:**
+<!-- 已知约束（预算、时间、组织）和需追踪的风险 -->
+
+-
+
+## 复盘节奏
+
+**每周同步记录：**
+**每月状态更新：**
+**每季复盘：**
 `,
 }
 
 const generalTemplate: WikiTemplate = {
   id: "general",
-  name: "General",
-  description: "Minimal setup — a blank slate for any purpose",
+  name: "通用",
+  description: "极简配置——适合任何用途的空白起点",
   icon: "📄",
   extraDirs: [],
-  schema: `# Wiki Schema
+  schema: `# Wiki 结构规范
 
-## Page Types
+## 页面类型
 
-| Type | Directory | Purpose |
-|------|-----------|---------|
+| 类型 | 目录 | 用途 |
+|------|------|------|
 ${BASE_SCHEMA_TYPES}
 
-## Naming Conventions
+## 命名规范
 
 ${BASE_NAMING}
 
@@ -591,49 +591,49 @@ ${BASE_NAMING}
 
 ${BASE_FRONTMATTER}
 
-## Index Format
+## 索引格式
 
 ${BASE_INDEX_FORMAT}
 
-## Log Format
+## 日志格式
 
 ${BASE_LOG_FORMAT}
 
-## Cross-referencing Rules
+## 交叉引用规则
 
 ${BASE_CROSSREF}
 
-## Contradiction Handling
+## 矛盾处理
 
 ${BASE_CONTRADICTION}
 `,
-  purpose: `# Project Purpose
+  purpose: `# 项目目的
 
-## Goal
+## 目标
 
-<!-- What are you trying to understand or build? -->
+<!-- 你想理解或构建什么？ -->
 
-## Key Questions
+## 核心问题
 
-<!-- List the primary questions driving this project -->
+<!-- 列出驱动本项目的主要问题 -->
 
 1.
 2.
 3.
 
-## Scope
+## 研究范围
 
-**In scope:**
+**范围内：**
 -
 
-**Out of scope:**
+**范围外：**
 -
 
-## Thesis
+## 论点
 
-<!-- Your current working hypothesis or conclusion (update as the project progresses) -->
+<!-- 你当前的工作假说或结论（随项目进展持续更新）-->
 
-> TBD
+> 待定
 `,
 }
 
