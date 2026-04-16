@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "gui:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-gui.ps1",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test"
