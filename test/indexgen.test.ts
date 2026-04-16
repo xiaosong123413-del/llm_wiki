@@ -19,7 +19,7 @@ describe("generateIndex", () => {
 
     expect(index).toContain("[[Alpha]]");
     expect(index).toContain("First concept");
-    expect(index).toContain("## Concepts");
+    expect(index).toContain("## 概念");
   });
 
   it("includes saved query pages in a separate section", async () => {
@@ -27,9 +27,9 @@ describe("generateIndex", () => {
     await writePage(path.join(root, "wiki/queries"), "what-is-alpha", { title: "What is Alpha?", summary: "A query answer" }, "Body of What is Alpha?.");
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("## Concepts");
+    expect(index).toContain("## 概念");
     expect(index).toContain("[[Alpha]]");
-    expect(index).toContain("## Saved Queries");
+    expect(index).toContain("## 保存的查询");
     expect(index).toContain("[[What is Alpha?]]");
   });
 
@@ -37,8 +37,8 @@ describe("generateIndex", () => {
     await writePage(path.join(root, "wiki/concepts"), "beta", { title: "Beta", summary: "A concept" }, "Body of Beta.");
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("## Concepts");
-    expect(index).not.toContain("## Saved Queries");
+    expect(index).toContain("## 概念");
+    expect(index).not.toContain("## 保存的查询");
   });
 
   it("reports correct total page count", async () => {
@@ -47,13 +47,13 @@ describe("generateIndex", () => {
     await writePage(path.join(root, "wiki/queries"), "q", { title: "Q", summary: "s" }, "Body.");
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("3 pages");
+    expect(index).toContain("3 页");
   });
 
   it("handles empty wiki gracefully", async () => {
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("0 pages");
+    expect(index).toContain("0 页");
   });
 
   it("excludes orphaned pages from the index", async () => {
@@ -67,6 +67,6 @@ describe("generateIndex", () => {
 
     expect(index).toContain("[[Alive]]");
     expect(index).not.toContain("[[Dead]]");
-    expect(index).toContain("1 pages");
+    expect(index).toContain("1 页");
   });
 });

@@ -41,11 +41,11 @@ describe("knowledge compounding loop", () => {
     // Step 3+4: Regenerate the index and verify it includes both pages
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("## Concepts");
+    expect(index).toContain("## \u6982\u5ff5");
     expect(index).toContain("[[Knowledge Compilation]]");
-    expect(index).toContain("## Saved Queries");
+    expect(index).toContain("## \u4fdd\u5b58\u7684\u67e5\u8be2");
     expect(index).toContain("[[What is Knowledge Compilation?]]");
-    expect(index).toContain("2 pages");
+    expect(index).toContain("2 \u9875");
   });
 
   it("saved query is loadable as context for future queries via real loadSelectedPages", async () => {
@@ -93,7 +93,7 @@ describe("knowledge compounding loop", () => {
       "LLMs are neural networks trained on text.",
     );
     let index = await generateAndReadIndex(root);
-    expect(index).toContain("1 pages");
+    expect(index).toContain("1 \u9875");
 
     // Round 2: User asks a question and saves it -> page count grows
     await writePage(
@@ -102,7 +102,7 @@ describe("knowledge compounding loop", () => {
       "An LLM is a large language model. See [[LLM]].",
     );
     index = await generateAndReadIndex(root);
-    expect(index).toContain("2 pages");
+    expect(index).toContain("2 \u9875");
 
     // Verify the saved query is also retrievable
     const loaded = await loadSelectedPages(root, ["what-is-an-llm"]);
@@ -115,6 +115,6 @@ describe("knowledge compounding loop", () => {
       "LLMs are trained on massive text corpora. See [[LLM]].",
     );
     index = await generateAndReadIndex(root);
-    expect(index).toContain("3 pages");
+    expect(index).toContain("3 \u9875");
   });
 });

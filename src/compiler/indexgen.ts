@@ -80,14 +80,14 @@ function stripWikilinks(text: string): string {
  * @returns Full index.md content string.
  */
 function buildIndexContent(concepts: PageSummary[], queries: PageSummary[]): string {
-  const lines = ["# Knowledge Wiki", "", "## Concepts", ""];
+  const lines = ["# 知识 Wiki", "", "## 概念", ""];
 
   for (const page of concepts) {
     lines.push(`- **[[${page.title}]]** — ${stripWikilinks(page.summary)}`);
   }
 
   if (queries.length > 0) {
-    lines.push("", "## Saved Queries", "");
+    lines.push("", "## 保存的查询", "");
     for (const page of queries) {
       lines.push(`- **[[${page.title}]]** — ${stripWikilinks(page.summary)}`);
     }
@@ -95,7 +95,7 @@ function buildIndexContent(concepts: PageSummary[], queries: PageSummary[]): str
 
   const total = concepts.length + queries.length;
   lines.push("");
-  lines.push(`_${total} pages | Generated ${new Date().toISOString()}_`);
+  lines.push(`_${total} 页 | 生成于 ${new Date().toISOString()}_`);
   lines.push("");
 
   return lines.join("\n");

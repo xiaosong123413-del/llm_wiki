@@ -10,13 +10,16 @@ import yaml from "js-yaml";
 
 /** Convert a human-readable concept title to a filename slug. */
 export function slugify(title: string): string {
-  return title
+  const slug = title
     .toLowerCase()
+    .normalize("NFKC")
     .replace(/['']/g, "")
-    .replace(/[^\w\s-]/g, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+
+  return slug || "untitled";
 }
 
 /** Build YAML frontmatter string from key-value pairs. */

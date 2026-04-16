@@ -25,9 +25,9 @@ export function summarizeBatchProgress({
   activeBatchCount,
 }) {
   return [
-    `Imported raw files: ${importedCount}`,
-    `Completed files: ${completedCount}`,
-    `Active batch size: ${activeBatchCount}`,
+    `已同步 raw 文件：${importedCount}`,
+    `已完成文件：${completedCount}`,
+    `当前批次大小：${activeBatchCount}`,
   ].join("\n");
 }
 
@@ -133,7 +133,7 @@ async function main() {
         activeBatchCount: 0,
       }),
     );
-    console.log("No remaining files to compile.");
+    console.log("没有剩余待编译文件。");
     return;
   }
 
@@ -150,7 +150,7 @@ async function main() {
       activeBatchCount: batch.length,
     }),
   );
-  console.log(`Output wiki: ${path.join(config.target_vault, "wiki")}`);
+  console.log(`wiki 输出：${path.join(config.target_vault, "wiki")}`);
 }
 
 const isDirectRun = process.argv[1]

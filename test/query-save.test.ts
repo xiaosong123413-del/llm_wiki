@@ -92,7 +92,7 @@ describe("query --save integration", () => {
     const index = await generateAndReadIndex(root);
 
     // The index should have the query's summary as retrieval signal
-    expect(index).toContain("## Saved Queries");
+    expect(index).toContain("## \u4fdd\u5b58\u7684\u67e5\u8be2");
     expect(index).toContain("[[What is an LLM?]]");
     expect(index).toContain("An LLM is a large language model trained on text corpora.");
   });

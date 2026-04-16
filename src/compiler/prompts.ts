@@ -1,19 +1,18 @@
 /**
  * LLM prompt templates and tool schemas for the compilation pipeline.
- * Contains the Anthropic tool definition for concept extraction,
- * prompt builders for both extraction and page generation phases,
- * and a parser for the structured tool output.
+ * Contains the tool definition for concept extraction, prompt builders for
+ * extraction/page generation, and a parser for structured tool output.
  */
 
 import type { ExtractedConcept } from "../utils/types.js";
 
 /**
- * Anthropic Tool definition for extracting knowledge concepts from a source.
- * Used with callClaude's tool_use mode to get structured concept data.
+ * Tool definition for extracting knowledge concepts from a source.
+ * The extracted titles, summaries, and tags are used as wiki metadata.
  */
 export const CONCEPT_EXTRACTION_TOOL = {
   name: "extract_concepts",
-  description: "Extract knowledge concepts from a source document",
+  description: "从源文档中抽取适合作为中文知识库页面的知识概念",
   input_schema: {
     type: "object" as const,
     properties: {
@@ -24,21 +23,20 @@ export const CONCEPT_EXTRACTION_TOOL = {
           properties: {
             concept: {
               type: "string",
-              description: "Human-readable concept title",
+              description: "中文概念标题；如果原文是英文术语，可保留术语并补充中文表达",
             },
             summary: {
               type: "string",
-              description: "One-line description",
+              description: "中文一句话摘要",
             },
             is_new: {
               type: "boolean",
-              description: "True if this is a new concept not in existing wiki",
+              description: "如果这是现有 wiki 中尚未覆盖的新概念，则为 true",
             },
             tags: {
               type: "array",
               items: { type: "string" },
-              description:
-                "2-4 categorical tags for organizing this concept (e.g., 'machine-learning', 'optimization')",
+              description: "2-4 个中文分类标签，用于组织概念",
             },
           },
           required: ["concept", "summary", "is_new"],
@@ -51,39 +49,38 @@ export const CONCEPT_EXTRACTION_TOOL = {
 
 /**
  * Build the system prompt for the concept extraction phase.
- * Instructs the LLM to analyze a source document and identify distinct concepts.
- * @param sourceContent - The full text of the source document.
- * @param existingIndex - The current wiki index.md contents (may be empty).
- * @returns System prompt string for the extraction call.
+ * @param sourceContent - Full source document text.
+ * @param existingIndex - Current wiki index.md contents, possibly empty.
+ * @returns System prompt string for extraction.
  */
 export function buildExtractionPrompt(
   sourceContent: string,
   existingIndex: string,
 ): string {
   const indexSection = existingIndex
-    ? `\n\nHere is the existing wiki index — avoid duplicating concepts already covered:\n\n${existingIndex}`
-    : "\n\nNo existing wiki pages yet.";
+    ? `\n\n这里是现有 wiki 索引，请避免重复已经覆盖的概念：\n\n${existingIndex}`
+    : "\n\n当前还没有已有 wiki 页面。";
 
   return [
-    "You are a knowledge extraction engine. Analyze the following source document",
-    "and identify 3-8 distinct, meaningful concepts worth documenting as wiki pages.",
-    "Each concept should be a standalone topic that someone might look up.",
-    "Focus on key ideas, techniques, patterns, or entities — not trivial details.",
-    "Use the extract_concepts tool to return your findings.",
+    "你是一个中文知识抽取引擎。请分析下面的源文档，",
+    "抽取 3-8 个独立、重要、值得写成 wiki 页面保存的概念。",
+    "每个概念都应该是可独立查询和复用的主题。",
+    "重点关注关键思想、技术、模式、框架、方法或实体，不要抽取琐碎细节。",
+    "概念标题、摘要、标签必须优先使用中文；必要时可保留英文术语作为括注。",
+    "请用 extract_concepts 工具返回结果。",
     indexSection,
-    "\n\n--- SOURCE DOCUMENT ---\n\n",
+    "\n\n--- 源文档 ---\n\n",
     sourceContent,
   ].join("\n");
 }
 
 /**
  * Build the system prompt for wiki page generation.
- * Instructs the LLM to write a complete wiki page for a single concept.
- * @param concept - The concept title to write about.
- * @param sourceContent - The source material to draw from.
- * @param existingPage - The current page content if updating (empty for new pages).
- * @param relatedPages - Concatenated content of related wiki pages for context.
- * @returns System prompt string for the page generation call.
+ * @param concept - Concept title to write about.
+ * @param sourceContent - Source material to draw from.
+ * @param existingPage - Existing page content if updating.
+ * @param relatedPages - Related wiki pages for context.
+ * @returns System prompt string for page generation.
  */
 export function buildPagePrompt(
   concept: string,
@@ -92,28 +89,29 @@ export function buildPagePrompt(
   relatedPages: string,
 ): string {
   const existingSection = existingPage
-    ? `\n\nExisting page to update:\n\n${existingPage}`
+    ? `\n\n需要更新的现有页面：\n\n${existingPage}`
     : "";
 
   const relatedSection = relatedPages
-    ? `\n\nRelated wiki pages for cross-referencing:\n\n${relatedPages}`
+    ? `\n\n可用于交叉引用的相关 wiki 页面：\n\n${relatedPages}`
     : "";
 
   return [
-    `You are a wiki author. Write a clear, well-structured markdown page about "${concept}".`,
-    "Draw facts only from the provided source material.",
-    "Include a ## Sources section at the end listing the source document.",
-    "Suggest [[wikilinks]] to related concepts where appropriate.",
-    "Write in a neutral, informative tone. Be concise but thorough.",
+    `你是中文知识库作者。请围绕“${concept}”写一篇清晰、结构良好的中文 Markdown wiki 页面。`,
+    "只能依据提供的源材料写作，不要编造事实。",
+    "页面正文、标题说明、摘要性段落应优先使用中文；必要时可保留英文术语并附中文解释。",
+    "请保留和使用 Obsidian 风格的 [[双链]]，不要破坏已有双链格式。",
+    "在页面末尾包含一个 `## 来源` 小节，列出源文档。",
+    "语气保持中立、信息密度高，简洁但充分。",
     "",
-    "Source attribution: at the end of each prose paragraph, append a citation",
-    "marker showing which source file(s) the paragraph drew from.",
-    "Format: ^[filename.md] for single-source, ^[source-a.md, source-b.md] for multi-source.",
-    "Place citations only at the end of prose paragraphs — not on headings, list items, or code blocks.",
-    "Source filenames are visible as `--- SOURCE: filename.md ---` headers in the content below.",
+    "来源标注：每个正文段落末尾都要追加引用标记，说明该段落依据哪些源文件。",
+    "格式：单一来源使用 ^[filename.md]，多来源使用 ^[source-a.md, source-b.md]。",
+    "引用标记只放在正文段落末尾，不要放在标题、列表项或代码块后。",
+    "源文件名会以 `--- SOURCE: filename.md ---` 头部出现在下方材料中。",
+    "输出只包含最终 Markdown 页面内容，不要解释你的写作过程。",
     existingSection,
     relatedSection,
-    "\n\n--- SOURCE MATERIAL ---\n\n",
+    "\n\n--- 源材料 ---\n\n",
     sourceContent,
   ].join("\n");
 }
@@ -121,7 +119,7 @@ export function buildPagePrompt(
 /**
  * Parse the JSON tool output from concept extraction into typed objects.
  * @param toolOutput - Raw JSON string returned from the extract_concepts tool.
- * @returns Array of ExtractedConcept objects.
+ * @returns Array of extracted concept objects.
  */
 export function parseConcepts(toolOutput: string): ExtractedConcept[] {
   try {

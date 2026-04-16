@@ -103,7 +103,7 @@ function generateAbbreviation(title: string): string | null {
 /**
  * Generate a Map of Content (MOC) page grouping concept pages by tag.
  * Reads all concept pages, extracts their tags from frontmatter, and writes
- * a structured MOC.md with sections per tag and an Uncategorized section.
+ * a structured MOC.md with sections per tag and an uncategorized section.
  * @param root - Project root directory.
  */
 export async function generateMOC(root: string): Promise<void> {
@@ -154,7 +154,7 @@ async function loadConceptPages(conceptsPath: string): Promise<PageInfo[]> {
 }
 
 /**
- * Group pages by their tags into a map. Pages with no tags go under "Uncategorized".
+ * Group pages by their tags into a map. Pages with no tags go under "未分类".
  * @param pages - Array of page info objects.
  * @returns Map of tag name to array of page titles.
  */
@@ -163,7 +163,7 @@ function groupPagesByTag(pages: PageInfo[]): Map<string, string[]> {
 
   for (const page of pages) {
     if (page.tags.length === 0) {
-      appendToGroup(groups, "Uncategorized", page.title);
+      appendToGroup(groups, "未分类", page.title);
       continue;
     }
 
@@ -191,12 +191,12 @@ function appendToGroup(groups: Map<string, string[]>, key: string, title: string
  * @returns Complete MOC markdown string.
  */
 function buildMOCContent(tagGroups: Map<string, string[]>): string {
-  const lines: string[] = ["# Map of Content", ""];
+  const lines: string[] = ["# 内容地图", ""];
 
   const sortedTags = [...tagGroups.keys()].sort((a, b) => {
-    // "Uncategorized" always goes last
-    if (a === "Uncategorized") return 1;
-    if (b === "Uncategorized") return -1;
+    // "未分类" always goes last.
+    if (a === "未分类") return 1;
+    if (b === "未分类") return -1;
     return a.localeCompare(b);
   });
 

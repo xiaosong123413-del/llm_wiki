@@ -282,7 +282,7 @@ async function generateMergedPage(
   const pageBody = await callClaude({
     system,
     messages: [
-      { role: "user", content: `Write the wiki page for "${entry.concept.concept}".` },
+      { role: "user", content: `请为“${entry.concept.concept}”写一篇中文 wiki 页面。` },
     ],
   });
 
@@ -317,7 +317,7 @@ async function extractConcepts(
   const system = buildExtractionPrompt(sourceContent, existingIndex);
   const rawOutput = await callClaude({
     system,
-    messages: [{ role: "user", content: "Extract the key concepts from this source." }],
+    messages: [{ role: "user", content: "请从这个源文档中抽取关键中文知识概念。" }],
     tools: [CONCEPT_EXTRACTION_TOOL],
   });
 

@@ -99,7 +99,7 @@ describe("generateMOC", () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
 
-    expect(moc).toContain("## Uncategorized");
+    expect(moc).toContain("## 未分类");
     expect(moc).toContain("[[Beta]]");
   });
 
@@ -110,14 +110,14 @@ describe("generateMOC", () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
 
-    expect(moc).toMatch(/^# Map of Content/);
+    expect(moc).toMatch(/^# 内容地图/);
     expect(moc).toContain("- [[Alpha]]");
   });
 
   it("handles empty concepts directory", async () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
-    expect(moc).toContain("# Map of Content");
+    expect(moc).toContain("# 内容地图");
   });
 
   it("excludes orphaned pages", async () => {

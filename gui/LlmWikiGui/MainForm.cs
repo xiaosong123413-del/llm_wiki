@@ -91,7 +91,7 @@ namespace LlmWikiGui
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             string json = serializer.Serialize(config);
             File.WriteAllText(configPath, PrettyJson(json), new UTF8Encoding(false));
-            AppendLog("Config saved: " + configPath);
+            AppendLog("\u914d\u7f6e\u5df2\u4fdd\u5b58\uff1a" + configPath);
         }
 
         private static string PrettyJson(string compactJson)
@@ -145,7 +145,7 @@ namespace LlmWikiGui
 
         private void InitializeComponent()
         {
-            Text = "LLM Wiki Compiler Panel";
+            Text = "LLM Wiki \u7f16\u8bd1\u9762\u677f";
             Width = 900;
             Height = 680;
             MinimumSize = new Size(760, 560);
@@ -166,7 +166,7 @@ namespace LlmWikiGui
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             Label titleLabel = new Label();
-            titleLabel.Text = "LLM Wiki One-click Sync Compile";
+            titleLabel.Text = "LLM Wiki \u4e00\u952e\u540c\u6b65\u7f16\u8bd1";
             titleLabel.Font = new Font(Font.FontFamily, 16F, FontStyle.Bold);
             titleLabel.AutoSize = true;
             titleLabel.Margin = new Padding(0, 0, 0, 12);
@@ -175,28 +175,28 @@ namespace LlmWikiGui
             targetVaultTextBox = new TextBox();
             targetVaultTextBox.Dock = DockStyle.Top;
             targetVaultTextBox.Margin = new Padding(0, 0, 0, 12);
-            layout.Controls.Add(WrapWithLabel("Target vault", targetVaultTextBox), 0, 1);
+            layout.Controls.Add(WrapWithLabel("\u76ee\u6807\u4ed3\u5e93", targetVaultTextBox), 0, 1);
 
             sourceFoldersListBox = new ListBox();
             sourceFoldersListBox.Dock = DockStyle.Fill;
             sourceFoldersListBox.HorizontalScrollbar = true;
-            layout.Controls.Add(WrapWithLabel("Source folders (add multiple if needed)", sourceFoldersListBox), 0, 2);
+            layout.Controls.Add(WrapWithLabel("\u540c\u6b65\u6e90\u6587\u4ef6\u5939\uff08\u53ef\u6dfb\u52a0\u591a\u4e2a\uff09", sourceFoldersListBox), 0, 2);
 
             FlowLayoutPanel sourceButtons = new FlowLayoutPanel();
             sourceButtons.AutoSize = true;
             sourceButtons.Margin = new Padding(0, 8, 0, 12);
-            sourceButtons.Controls.Add(CreateButton("Add source folder", OnAddSourceFolder));
-            sourceButtons.Controls.Add(CreateButton("Remove selected", OnRemoveSelectedFolder));
-            sourceButtons.Controls.Add(CreateButton("Save config", OnSaveConfig));
-            sourceButtons.Controls.Add(CreateButton("Open config", OnOpenConfig));
+            sourceButtons.Controls.Add(CreateButton("\u6dfb\u52a0\u6e90\u6587\u4ef6\u5939", OnAddSourceFolder));
+            sourceButtons.Controls.Add(CreateButton("\u79fb\u9664\u9009\u4e2d", OnRemoveSelectedFolder));
+            sourceButtons.Controls.Add(CreateButton("\u4fdd\u5b58\u914d\u7f6e", OnSaveConfig));
+            sourceButtons.Controls.Add(CreateButton("\u6253\u5f00\u914d\u7f6e", OnOpenConfig));
             layout.Controls.Add(sourceButtons, 0, 3);
 
             FlowLayoutPanel runButtons = new FlowLayoutPanel();
             runButtons.AutoSize = true;
             runButtons.Margin = new Padding(0, 0, 0, 12);
-            startButton = CreateButton("Start sync + compile", OnStartCompile);
+            startButton = CreateButton("\u5f00\u59cb\u540c\u6b65\u5e76\u7f16\u8bd1", OnStartCompile);
             runButtons.Controls.Add(startButton);
-            runButtons.Controls.Add(CreateButton("Open wiki output", OnOpenWiki));
+            runButtons.Controls.Add(CreateButton("\u6253\u5f00 wiki \u8f93\u51fa", OnOpenWiki));
             layout.Controls.Add(runButtons, 0, 4);
 
             logTextBox = new TextBox();
@@ -206,11 +206,11 @@ namespace LlmWikiGui
             logTextBox.WordWrap = false;
             logTextBox.ReadOnly = true;
             logTextBox.Font = new Font("Consolas", 9F);
-            layout.Controls.Add(WrapWithLabel("Runtime log", logTextBox), 0, 5);
+            layout.Controls.Add(WrapWithLabel("\u8fd0\u884c\u65e5\u5fd7", logTextBox), 0, 5);
 
             Label hintLabel = new Label();
             hintLabel.AutoSize = true;
-            hintLabel.Text = "Save config first, then start. This calls Node directly and does not open a PowerShell window.";
+            hintLabel.Text = "\u5148\u4fdd\u5b58\u914d\u7f6e\uff0c\u518d\u5f00\u59cb\u3002\u7a0b\u5e8f\u4f1a\u76f4\u63a5\u8c03\u7528 Node\uff0c\u4e0d\u4f1a\u6253\u5f00 PowerShell \u7a97\u53e3\u3002";
             hintLabel.Margin = new Padding(0, 12, 0, 0);
             layout.Controls.Add(hintLabel, 0, 6);
 
@@ -256,15 +256,15 @@ namespace LlmWikiGui
                 sourceFoldersListBox.Items.Add(folder);
             }
 
-            AppendLog("Project root: " + projectRoot);
-            AppendLog("Config: " + configPath);
+            AppendLog("\u9879\u76ee\u76ee\u5f55\uff1a" + projectRoot);
+            AppendLog("\u914d\u7f6e\u6587\u4ef6\uff1a" + configPath);
         }
 
         private void OnAddSourceFolder(object sender, EventArgs e)
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "Select one source folder. Repeat Add to include more folders.";
+                dialog.Description = "\u9009\u62e9\u4e00\u4e2a\u540c\u6b65\u6e90\u6587\u4ef6\u5939\u3002\u53ef\u91cd\u590d\u70b9\u51fb\u6dfb\u52a0\u591a\u4e2a\u6587\u4ef6\u5939\u3002";
                 dialog.ShowNewFolderButton = false;
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
@@ -303,20 +303,20 @@ namespace LlmWikiGui
                 return;
             }
 
-            MessageBox.Show(this, "The wiki output folder does not exist yet. Run compile first.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "wiki \u8f93\u51fa\u76ee\u5f55\u8fd8\u4e0d\u5b58\u5728\uff0c\u8bf7\u5148\u8fd0\u884c\u4e00\u6b21\u7f16\u8bd1\u3002", "\u63d0\u793a", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnStartCompile(object sender, EventArgs e)
         {
             if (runningProcess != null && !runningProcess.HasExited)
             {
-                MessageBox.Show(this, "A sync compile task is already running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "\u5df2\u6709\u540c\u6b65\u7f16\u8bd1\u4efb\u52a1\u6b63\u5728\u8fd0\u884c\u3002", "\u63d0\u793a", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             if (sourceFoldersListBox.Items.Count == 0)
             {
-                MessageBox.Show(this, "Add at least one source folder first.", "Missing source folder", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "\u8bf7\u5148\u6dfb\u52a0\u81f3\u5c11\u4e00\u4e2a\u540c\u6b65\u6e90\u6587\u4ef6\u5939\u3002", "\u7f3a\u5c11\u6e90\u6587\u4ef6\u5939", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -329,7 +329,7 @@ namespace LlmWikiGui
             string nodePath = ResolveNodePath();
             string scriptPath = Path.Combine(projectRoot, "scripts", "sync-compile.mjs");
             logTextBox.Clear();
-            AppendLog("Starting sync + compile...");
+            AppendLog("\u6b63\u5728\u5f00\u59cb\u540c\u6b65\u5e76\u7f16\u8bd1...");
             AppendLog("Node: " + nodePath);
             AppendLog("Script: " + scriptPath);
 
@@ -392,7 +392,7 @@ namespace LlmWikiGui
             BeginInvoke(new Action(delegate
             {
                 startButton.Enabled = true;
-                AppendLog("Process exited with code " + exitCode + ".");
+                AppendLog("\u8fdb\u7a0b\u9000\u51fa\uff0c\u4ee3\u7801\uff1a" + exitCode + "\u3002");
             }));
         }
 
@@ -416,8 +416,8 @@ namespace LlmWikiGui
 
             DialogResult result = MessageBox.Show(
                 this,
-                "Sync compile is still running. Closing this window stops the current task. Close anyway?",
-                "Confirm close",
+                "\u540c\u6b65\u7f16\u8bd1\u4ecd\u5728\u8fd0\u884c\u3002\u5173\u95ed\u7a97\u53e3\u4f1a\u505c\u6b62\u5f53\u524d\u4efb\u52a1\uff0c\u786e\u8ba4\u5173\u95ed\u5417\uff1f",
+                "\u786e\u8ba4\u5173\u95ed",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
             if (result != DialogResult.Yes)
