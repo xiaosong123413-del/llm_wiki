@@ -16,6 +16,16 @@ describe("windows gui launcher", () => {
     expect(formSource).toContain("sync-compile.mjs");
   });
 
+  it("keeps gui source ascii-only to avoid Windows PowerShell encoding damage", async () => {
+    const formSource = await readFile(
+      path.join(root, "gui", "LlmWikiGui", "MainForm.cs"),
+      "utf8",
+    );
+
+    expect([...formSource].every((char) => char.charCodeAt(0) <= 127)).toBe(true);
+    expect(formSource).toContain("\\u7684\\u4ed3\\u5e93");
+  });
+
   it("build script publishes a desktop exe panel", async () => {
     const buildScript = await readFile(
       path.join(root, "scripts", "build-gui.ps1"),

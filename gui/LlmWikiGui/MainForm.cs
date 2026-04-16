@@ -17,9 +17,7 @@ namespace LlmWikiGui
         private TextBox targetVaultTextBox;
         private ListBox sourceFoldersListBox;
         private TextBox logTextBox;
-        private Button saveButton;
         private Button startButton;
-        private Button openWikiButton;
         private Process runningProcess;
 
         public MainForm()
@@ -34,11 +32,14 @@ namespace LlmWikiGui
         private static string ResolveProjectRoot()
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string desktopProject = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                "llm-wiki-compiler-main");
             string[] candidates = new string[]
             {
                 baseDir,
                 Path.GetFullPath(Path.Combine(baseDir, "..", "..")),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "llm-wiki-compiler-main")
+                desktopProject
             };
 
             foreach (string candidate in candidates)
@@ -49,7 +50,7 @@ namespace LlmWikiGui
                 }
             }
 
-            return candidates[candidates.Length - 1];
+            return desktopProject;
         }
 
         private SyncCompileConfig LoadConfig()
@@ -78,7 +79,11 @@ namespace LlmWikiGui
             config.source_folders = new List<string>();
             foreach (object item in sourceFoldersListBox.Items)
             {
-                config.source_folders.Add(Convert.ToString(item));
+                string value = Convert.ToString(item);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    config.source_folders.Add(value);
+                }
             }
             config.ApplyDefaults(projectRoot);
 
@@ -93,10 +98,12 @@ namespace LlmWikiGui
             StringBuilder output = new StringBuilder();
             int indent = 0;
             bool inString = false;
+
             for (int i = 0; i < compactJson.Length; i++)
             {
                 char ch = compactJson[i];
-                if (ch == '"' && (i == 0 || compactJson[i - 1] != '\\'))
+                bool escapedQuote = ch == '"' && i > 0 && compactJson[i - 1] == '\\';
+                if (ch == '"' && !escapedQuote)
                 {
                     inString = !inString;
                 }
@@ -158,7 +165,7 @@ namespace LlmWikiGui
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             Label titleLabel = new Label();
-            titleLabel.Text = "LLM Wiki 一键同步编译";
+            titleLabel.Text = "LLM Wiki One-click Sync Compile";
             titleLabel.Font = new Font(Font.FontFamily, 16F, FontStyle.Bold);
             titleLabel.AutoSize = true;
             titleLabel.Margin = new Padding(0, 0, 0, 12);
@@ -167,30 +174,28 @@ namespace LlmWikiGui
             targetVaultTextBox = new TextBox();
             targetVaultTextBox.Dock = DockStyle.Top;
             targetVaultTextBox.Margin = new Padding(0, 0, 0, 12);
-            layout.Controls.Add(WrapWithLabel("目标 vault", targetVaultTextBox), 0, 1);
+            layout.Controls.Add(WrapWithLabel("Target vault", targetVaultTextBox), 0, 1);
 
             sourceFoldersListBox = new ListBox();
             sourceFoldersListBox.Dock = DockStyle.Fill;
             sourceFoldersListBox.HorizontalScrollbar = true;
-            layout.Controls.Add(WrapWithLabel("同步源文件夹（可添加多个）", sourceFoldersListBox), 0, 2);
+            layout.Controls.Add(WrapWithLabel("Source folders (add multiple if needed)", sourceFoldersListBox), 0, 2);
 
             FlowLayoutPanel sourceButtons = new FlowLayoutPanel();
             sourceButtons.AutoSize = true;
             sourceButtons.Margin = new Padding(0, 8, 0, 12);
-            sourceButtons.Controls.Add(CreateButton("添加源文件夹", OnAddSourceFolder));
-            sourceButtons.Controls.Add(CreateButton("移除选中", OnRemoveSelectedFolder));
-            saveButton = CreateButton("保存配置", OnSaveConfig);
-            sourceButtons.Controls.Add(saveButton);
-            sourceButtons.Controls.Add(CreateButton("打开配置文件", OnOpenConfig));
+            sourceButtons.Controls.Add(CreateButton("Add source folder", OnAddSourceFolder));
+            sourceButtons.Controls.Add(CreateButton("Remove selected", OnRemoveSelectedFolder));
+            sourceButtons.Controls.Add(CreateButton("Save config", OnSaveConfig));
+            sourceButtons.Controls.Add(CreateButton("Open config", OnOpenConfig));
             layout.Controls.Add(sourceButtons, 0, 3);
 
             FlowLayoutPanel runButtons = new FlowLayoutPanel();
             runButtons.AutoSize = true;
             runButtons.Margin = new Padding(0, 0, 0, 12);
-            startButton = CreateButton("开始同步并编译", OnStartCompile);
-            openWikiButton = CreateButton("打开 wiki 输出", OnOpenWiki);
+            startButton = CreateButton("Start sync + compile", OnStartCompile);
             runButtons.Controls.Add(startButton);
-            runButtons.Controls.Add(openWikiButton);
+            runButtons.Controls.Add(CreateButton("Open wiki output", OnOpenWiki));
             layout.Controls.Add(runButtons, 0, 4);
 
             logTextBox = new TextBox();
@@ -200,11 +205,11 @@ namespace LlmWikiGui
             logTextBox.WordWrap = false;
             logTextBox.ReadOnly = true;
             logTextBox.Font = new Font("Consolas", 9F);
-            layout.Controls.Add(WrapWithLabel("运行日志", logTextBox), 0, 5);
+            layout.Controls.Add(WrapWithLabel("Runtime log", logTextBox), 0, 5);
 
             Label hintLabel = new Label();
             hintLabel.AutoSize = true;
-            hintLabel.Text = "说明：保存配置后点击开始。程序会调用 Node 同步编译，不会打开 PowerShell 黑窗口。";
+            hintLabel.Text = "Save config first, then start. This calls Node directly and does not open a PowerShell window.";
             hintLabel.Margin = new Padding(0, 12, 0, 0);
             layout.Controls.Add(hintLabel, 0, 6);
 
@@ -258,7 +263,7 @@ namespace LlmWikiGui
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.Description = "选择一个同步源文件夹。可重复点击添加多个。";
+                dialog.Description = "Select one source folder. Repeat Add to include more folders.";
                 dialog.ShowNewFolderButton = false;
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
@@ -294,24 +299,23 @@ namespace LlmWikiGui
             if (Directory.Exists(wikiPath))
             {
                 Process.Start("explorer.exe", wikiPath);
+                return;
             }
-            else
-            {
-                MessageBox.Show(this, "wiki 输出目录还不存在。先运行一次编译。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+
+            MessageBox.Show(this, "The wiki output folder does not exist yet. Run compile first.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnStartCompile(object sender, EventArgs e)
         {
             if (runningProcess != null && !runningProcess.HasExited)
             {
-                MessageBox.Show(this, "已有同步编译任务正在运行。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "A sync compile task is already running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             if (sourceFoldersListBox.Items.Count == 0)
             {
-                MessageBox.Show(this, "请先添加至少一个同步源文件夹。", "缺少源文件夹", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "Add at least one source folder first.", "Missing source folder", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -399,22 +403,24 @@ namespace LlmWikiGui
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
-            if (runningProcess != null && !runningProcess.HasExited)
+            if (runningProcess == null || runningProcess.HasExited)
             {
-                DialogResult result = MessageBox.Show(
-                    this,
-                    "同步编译仍在运行，关闭窗口会停止当前任务。确定关闭？",
-                    "确认关闭",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning);
-                if (result != DialogResult.Yes)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-
-                runningProcess.Kill();
+                return;
             }
+
+            DialogResult result = MessageBox.Show(
+                this,
+                "Sync compile is still running. Closing this window stops the current task. Close anyway?",
+                "Confirm close",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (result != DialogResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            runningProcess.Kill();
         }
     }
 
@@ -439,7 +445,7 @@ namespace LlmWikiGui
         {
             if (string.IsNullOrEmpty(target_vault))
             {
-                target_vault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ai的仓库");
+                target_vault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ai\u7684\u4ed3\u5e93");
             }
             if (string.IsNullOrEmpty(compiler_root))
             {
@@ -461,11 +467,11 @@ namespace LlmWikiGui
             {
                 batch_pattern_order = new List<string>
                 {
-                    "ai知识库（第二大脑）__概念__*",
-                    "ai知识库（第二大脑）__项目__*",
-                    "02_领域__*",
-                    "01_项目__*",
-                    "03_资源__*",
+                    "ai\u77e5\u8bc6\u5e93\uff08\u7b2c\u4e8c\u5927\u8111\uff09__\u6982\u5ff5__*",
+                    "ai\u77e5\u8bc6\u5e93\uff08\u7b2c\u4e8c\u5927\u8111\uff09__\u9879\u76ee__*",
+                    "02_\u9886\u57df__*",
+                    "01_\u9879\u76ee__*",
+                    "03_\u8d44\u6e90__*",
                     "*"
                 };
             }
