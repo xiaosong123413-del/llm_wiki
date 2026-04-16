@@ -7,6 +7,7 @@ import { tmpdir } from "os";
 
 const exec = promisify(execFile);
 const CLI = path.resolve("dist/cli.js");
+const TSUP_CLI = path.resolve("node_modules/tsup/dist/cli-default.js");
 
 async function cleanupDirectory(directory: string): Promise<void> {
   await rm(directory, { recursive: true, force: true });
@@ -49,7 +50,7 @@ async function createCompileWorkspace(
 
 describe("CLI smoke tests", () => {
   beforeAll(async () => {
-    await exec("npx", ["tsup"], { cwd: path.resolve(".") });
+    await exec(process.execPath, [TSUP_CLI], { cwd: path.resolve(".") });
   }, 30_000);
   it("prints help and exits 0", async () => {
     const { stdout } = await exec("node", [CLI, "--help"]);
