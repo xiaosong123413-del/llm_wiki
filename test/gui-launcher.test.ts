@@ -26,6 +26,16 @@ describe("windows gui launcher", () => {
     expect(formSource).toContain("\\u7684\\u4ed3\\u5e93");
   });
 
+  it("strips ansi terminal color codes before writing gui logs", async () => {
+    const formSource = await readFile(
+      path.join(root, "gui", "LlmWikiGui", "MainForm.cs"),
+      "utf8",
+    );
+
+    expect(formSource).toContain("StripAnsi");
+    expect(formSource).toContain("@\"\\x1B\\[[0-?]*[ -/]*[@-~]\"");
+  });
+
   it("build script publishes a desktop exe panel", async () => {
     const buildScript = await readFile(
       path.join(root, "scripts", "build-gui.ps1"),

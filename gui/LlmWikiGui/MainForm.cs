@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -376,8 +377,13 @@ namespace LlmWikiGui
         {
             if (!string.IsNullOrEmpty(e.Data))
             {
-                AppendLog(e.Data);
+                AppendLog(StripAnsi(e.Data));
             }
+        }
+
+        private static string StripAnsi(string line)
+        {
+            return Regex.Replace(line, @"\x1B\[[0-?]*[ -/]*[@-~]", string.Empty);
         }
 
         private void OnProcessExited(object sender, EventArgs e)
