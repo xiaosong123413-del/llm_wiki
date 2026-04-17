@@ -1,0 +1,65 @@
+/**
+ * Lucide-derived icon renderer.
+ *
+ * Returns inline SVG markup for a named icon. Icons below are copied from the
+ * Lucide icon set (MIT License, https://lucide.dev). Extend ICONS as later
+ * phases need more; ICON_NAMES is exported for test coverage.
+ *
+ * Consumers embed the result via `element.innerHTML = renderIcon(name)`.
+ * Default size 20, default stroke-width 1.75, matching the visual system.
+ */
+
+interface IconOptions {
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}
+
+const DEFAULT_SIZE = 20;
+const DEFAULT_STROKE_WIDTH = 1.75;
+
+/** Inner paths only — the outer <svg> is generated in renderIcon. */
+const ICONS: Record<string, string> = {
+  "message-square":
+    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  "check-circle-2":
+    '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  "refresh-cw":
+    '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>' +
+    '<path d="M21 3v5h-5"/>' +
+    '<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>' +
+    '<path d="M8 16H3v5"/>',
+  "clipboard-list":
+    '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>' +
+    '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>' +
+    '<path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  "settings":
+    '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>' +
+    '<circle cx="12" cy="12" r="3"/>',
+  "search":
+    '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  "hammer":
+    '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/>' +
+    '<path d="m18 15 4-4"/>' +
+    '<path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
+};
+
+export const ICON_NAMES: readonly string[] = Object.keys(ICONS);
+
+export function renderIcon(name: string, options: IconOptions = {}): string {
+  const inner = ICONS[name];
+  if (!inner) {
+    throw new Error(`unknown icon: ${name}`);
+  }
+  const size = options.size ?? DEFAULT_SIZE;
+  const stroke = options.strokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const className = options.className ? `lucide-icon ${options.className}` : "lucide-icon";
+  return (
+    `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" ` +
+    `width="${size}" height="${size}" viewBox="0 0 24 24" ` +
+    `fill="none" stroke="currentColor" stroke-width="${stroke}" ` +
+    `stroke-linecap="round" stroke-linejoin="round">` +
+    inner +
+    `</svg>`
+  );
+}
