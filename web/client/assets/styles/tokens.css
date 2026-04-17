@@ -1,0 +1,58 @@
+/* Design tokens — see docs/superpowers/specs/2026-04-17-web-ui-redesign-design.md §4 */
+:root {
+  /* Brand */
+  --primary: #6D57FF;
+  --primary-hover: #5B46E8;
+  --primary-soft: #EFEBFF;
+  --primary-ring: rgba(109, 87, 255, 0.22);
+
+  /* Neutrals */
+  --bg-app: #F7F7FB;
+  --bg-panel: #FFFFFF;
+  --bg-muted: #F2F2F7;
+  --bg-hover: #EDEDF4;
+  --bg-selected: #E8E5F7;
+
+  /* Borders */
+  --border: #EAEAF0;
+  --border-strong: #D8D8E2;
+
+  /* Text */
+  --text: #18181B;
+  --text-secondary: #52525B;
+  --text-muted: #8A8A93;
+  --text-on-primary: #FFFFFF;
+
+  /* Semantic */
+  --success: #10B981;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.04);
+  --shadow-md: 0 4px 16px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.04);
+  --shadow-lg: 0 20px 48px rgba(109, 87, 255, 0.12), 0 4px 12px rgba(24, 24, 27, 0.06);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+}
