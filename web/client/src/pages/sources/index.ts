@@ -191,6 +191,7 @@ export function renderSourcesPage(): HTMLElement {
   window.addEventListener("resize", handleResize);
   root.__dispose = (): void => {
     window.removeEventListener("resize", handleResize);
+    closeSourceWorkspace();
   };
   syncSourceGalleryLayout(root);
   void refreshGallery(root, state);

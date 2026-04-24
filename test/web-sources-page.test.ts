@@ -409,6 +409,24 @@ describe("sources gallery page", () => {
     );
   });
 
+  it("removes the fullscreen workspace overlay when the page is disposed", async () => {
+    const page = renderTestSourcesPage();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLElement>("[data-source-gallery-view='source-1']")?.click();
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    expect(document.querySelector("[data-source-gallery-workspace='true']")).toBeTruthy();
+
+    page.__dispose?.();
+
+    expect(document.querySelector("[data-source-gallery-workspace='true']")).toBeNull();
+  });
+
   it("reports workspace open failures through page status instead of leaving an unhandled action", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
