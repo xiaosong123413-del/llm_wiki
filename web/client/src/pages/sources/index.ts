@@ -207,10 +207,9 @@ export function applySourceGalleryRowHeight(
   viewportHeight: number,
   rowGap = SOURCE_GALLERY_ROW_GAP_PX,
 ): void {
-  root.style.setProperty(
-    "--source-gallery-row-height",
-    `${computeSourceGalleryRowHeight(viewportHeight, rowGap)}px`,
-  );
+  const rowHeight = `${computeSourceGalleryRowHeight(viewportHeight, rowGap)}px`;
+  root.style.setProperty("--source-gallery-row-height", rowHeight);
+  root.querySelector<HTMLElement>(".source-gallery-page")?.style.setProperty("--source-gallery-row-height", rowHeight);
 }
 
 function bindEvents(root: HTMLElement, state: PageState): void {

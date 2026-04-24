@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -11,6 +12,12 @@ import {
   computeSourceGalleryRowHeight,
   renderSourcesPage,
 } from "../web/client/src/pages/sources/index.js";
+
+interface DisposableSourcesPage extends HTMLElement {
+  __dispose?: () => void;
+}
+
+const renderedPages: DisposableSourcesPage[] = [];
 
 describe("sources gallery page", () => {
   beforeEach(() => {
@@ -124,8 +131,15 @@ describe("sources gallery page", () => {
     }));
   });
 
+  afterEach(() => {
+    for (const page of renderedPages.splice(0)) {
+      page.__dispose?.();
+    }
+    document.body.innerHTML = "";
+  });
+
   it("renders filter-only chrome with a pure three-column gallery grid", async () => {
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -158,8 +172,18 @@ describe("sources gallery page", () => {
     expect(page.style.getPropertyValue("--source-gallery-row-height")).toBe("332px");
   });
 
+  it("applies the computed gallery row height to the real gallery page node", () => {
+    const page = renderTestSourcesPage();
+
+    applySourceGalleryRowHeight(page, 680, 16);
+
+    expect(page.style.getPropertyValue("--source-gallery-row-height")).toBe("332px");
+    expect(page.querySelector<HTMLElement>(".source-gallery-page")?.style.getPropertyValue("--source-gallery-row-height"))
+      .toBe("332px");
+  });
+
   it("keeps the five-filter chrome and internal viewport wrapper around the gallery grid", async () => {
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -183,7 +207,7 @@ describe("sources gallery page", () => {
   });
 
   it("shows the selection toolbar after choosing cards", async () => {
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -254,7 +278,7 @@ describe("sources gallery page", () => {
       return ok({});
     });
 
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -333,7 +357,7 @@ describe("sources gallery page", () => {
       return ok({});
     });
 
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -355,7 +379,7 @@ describe("sources gallery page", () => {
 
   it("opens a fullscreen workspace with rendered content and chat panel", async () => {
     const fetchMock = vi.mocked(fetch);
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -415,7 +439,7 @@ describe("sources gallery page", () => {
       return ok({});
     });
 
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -429,7 +453,7 @@ describe("sources gallery page", () => {
 
   it("sends guided-ingest chat messages from the fullscreen workspace", async () => {
     const fetchMock = vi.mocked(fetch);
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -519,7 +543,7 @@ describe("sources gallery page", () => {
       return ok({});
     });
 
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -549,7 +573,7 @@ describe("sources gallery page", () => {
 
   it("queues compile from the source workspace using the source and guided-ingest conversation", async () => {
     const fetchMock = vi.mocked(fetch);
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -631,7 +655,7 @@ describe("sources gallery page", () => {
       return ok({});
     });
 
-    const page = renderSourcesPage();
+    const page = renderTestSourcesPage();
     await flush();
     await flush();
 
@@ -675,4 +699,10 @@ function fail(error: string) {
 
 async function flush(): Promise<void> {
   await Promise.resolve();
+}
+
+function renderTestSourcesPage(): DisposableSourcesPage {
+  const page = renderSourcesPage() as DisposableSourcesPage;
+  renderedPages.push(page);
+  return page;
 }
