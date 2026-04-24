@@ -86,6 +86,13 @@ interface PageState {
   sort: SourceGallerySort;
 }
 
+interface SourcesPageRoot extends HTMLElement {
+  __dispose?: () => void;
+}
+
+const SOURCE_GALLERY_ROW_GAP_PX = 16;
+const SOURCE_GALLERY_MIN_ROW_HEIGHT_PX = 220;
+
 const TEXT = {
   search: "\u641c\u7d22",
   searchPlaceholder: "\u6807\u9898 / \u6b63\u6587 / URL / \u6807\u7b7e",
@@ -122,7 +129,7 @@ const TEXT = {
 };
 
 export function renderSourcesPage(): HTMLElement {
-  const root = document.createElement("section");
+  const root = document.createElement("section") as SourcesPageRoot;
   root.className = "source-gallery-shell";
   root.innerHTML = `
     <div class="source-gallery-page">
@@ -176,9 +183,34 @@ export function renderSourcesPage(): HTMLElement {
     sort: "modified-desc",
   };
 
+  const handleResize = (): void => {
+    syncSourceGalleryLayout(root);
+  };
+
   bindEvents(root, state);
+  window.addEventListener("resize", handleResize);
+  root.__dispose = (): void => {
+    window.removeEventListener("resize", handleResize);
+  };
+  syncSourceGalleryLayout(root);
   void refreshGallery(root, state);
   return root;
+}
+
+export function computeSourceGalleryRowHeight(viewportHeight: number, rowGap = SOURCE_GALLERY_ROW_GAP_PX): number {
+  const availableHeight = Math.max(0, viewportHeight - rowGap);
+  return Math.max(SOURCE_GALLERY_MIN_ROW_HEIGHT_PX, Math.floor(availableHeight / 2));
+}
+
+export function applySourceGalleryRowHeight(
+  root: HTMLElement,
+  viewportHeight: number,
+  rowGap = SOURCE_GALLERY_ROW_GAP_PX,
+): void {
+  root.style.setProperty(
+    "--source-gallery-row-height",
+    `${computeSourceGalleryRowHeight(viewportHeight, rowGap)}px`,
+  );
 }
 
 function bindEvents(root: HTMLElement, state: PageState): void {
@@ -249,10 +281,19 @@ async function refreshGallery(root: HTMLElement, state: PageState): Promise<void
     syncSelectedPaths(state);
     renderCards(grid, state);
     syncSelectionBar(root, state);
+    syncSourceGalleryLayout(root);
     setStatus(root, TEXT.itemCount(state.items.length));
   } catch (error) {
     setStatus(root, error);
   }
+}
+
+function syncSourceGalleryLayout(root: HTMLElement): void {
+  const viewport = root.querySelector<HTMLElement>(".source-gallery-page__viewport");
+  if (!viewport) return;
+  const viewportHeight = viewport.clientHeight || Math.floor(viewport.getBoundingClientRect().height);
+  if (viewportHeight <= 0) return;
+  applySourceGalleryRowHeight(root, viewportHeight);
 }
 
 async function searchGalleryItems(items: SourceGalleryItem[], query: string): Promise<SourceGalleryItem[]> {
@@ -306,6 +347,7 @@ function syncSelectionBar(root: HTMLElement, state: PageState): void {
   if (!selectionBar || !count) return;
   selectionBar.classList.toggle("hidden", state.selectedIds.size === 0);
   count.textContent = TEXT.selectedSummary(state.selectedIds.size);
+  syncSourceGalleryLayout(root);
 }
 
 async function runBatchAction(root: HTMLElement, state: PageState, action: string): Promise<void> {

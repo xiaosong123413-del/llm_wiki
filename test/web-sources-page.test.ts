@@ -6,7 +6,11 @@ import {
   it,
   vi,
 } from "vitest";
-import { renderSourcesPage } from "../web/client/src/pages/sources/index.js";
+import {
+  applySourceGalleryRowHeight,
+  computeSourceGalleryRowHeight,
+  renderSourcesPage,
+} from "../web/client/src/pages/sources/index.js";
 
 describe("sources gallery page", () => {
   beforeEach(() => {
@@ -139,6 +143,19 @@ describe("sources gallery page", () => {
     expect(page.querySelector("[data-source-gallery-view='raw-1']")?.getAttribute("aria-label")).toBe("查看原文");
     expect(page.querySelector("[data-source-gallery-card-inbox='raw-1']")?.getAttribute("aria-label")).toBe("加入 inbox");
     expect(page.querySelector(".source-gallery-selectionbar")?.classList.contains("hidden")).toBe(true);
+  });
+
+  it("computes strict two-row gallery heights from the viewport height", () => {
+    expect(computeSourceGalleryRowHeight(680, 16)).toBe(332);
+    expect(computeSourceGalleryRowHeight(640, 16)).toBe(312);
+  });
+
+  it("applies the computed gallery row height to the root css variable", () => {
+    const page = document.createElement("section");
+
+    applySourceGalleryRowHeight(page, 680, 16);
+
+    expect(page.style.getPropertyValue("--source-gallery-row-height")).toBe("332px");
   });
 
   it("keeps the five-filter chrome and internal viewport wrapper around the gallery grid", async () => {
