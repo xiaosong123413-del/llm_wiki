@@ -70,7 +70,7 @@ This should be implemented as:
 
 - new route module under `web/server/routes/task-plan.ts`
 - new service module(s) under `web/server/services/task-plan*.ts`
-- file-backed state under `.llmwiki/task-plan/`
+- file-backed state under `D:\Desktop\ai的仓库\task plan\`
 
 The frontend should call these APIs directly from `workspace/index.ts` when the user clicks task-plan controls.
 
@@ -199,13 +199,15 @@ Backend result:
 
 ## Data Model
 
-Persist task-plan state under `.llmwiki/task-plan/`.
+Persist task-plan state under `D:\Desktop\ai的仓库\task plan\`.
+
+This absolute path is a user-specified local storage root and overrides the default project-local `.llmwiki` placement for this feature.
 
 Recommended files:
 
-- `.llmwiki/task-plan/state.json`
-- `.llmwiki/task-plan/executions.json`
-- `.llmwiki/task-plan/audio/` for raw recordings if retained
+- `D:\Desktop\ai的仓库\task plan\state.json`
+- `D:\Desktop\ai的仓库\task plan\executions.json`
+- `D:\Desktop\ai的仓库\task plan\audio\` for raw recordings if retained
 
 ### `state.json`
 
@@ -234,6 +236,8 @@ Append-only execution history:
 - status
 
 This separation keeps mutable page state distinct from immutable execution history.
+
+The implementation should create `D:\Desktop\ai的仓库\task plan\` on first write if it does not already exist.
 
 ## Context Inputs for Planning
 
