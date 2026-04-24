@@ -616,19 +616,6 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return payload.data;
 }
 
-async function put<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !payload.success || payload.data === undefined) {
-    throw new Error(payload.error ?? `request failed: ${url}`);
-  }
-  return payload.data;
-}
-
 async function del<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
     method: "DELETE",
@@ -704,10 +691,6 @@ function renderEmbeddedMedia(media: SourceGalleryDetail["media"]): string {
   return `<div class="source-gallery-media-grid">${blocks.join("")}</div>`;
 }
 
-function hasTranscribableMedia(kinds: Array<"image" | "pdf" | "video" | "audio">): boolean {
-  return kinds.includes("audio") || kinds.includes("video");
-}
-
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"]/g, (character) => {
     switch (character) {
@@ -723,8 +706,4 @@ function escapeHtml(value: string): string {
         return character;
     }
   });
-}
-
-function escapeHtmlTextarea(value: string): string {
-  return escapeHtml(value);
 }
