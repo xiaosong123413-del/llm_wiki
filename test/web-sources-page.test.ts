@@ -11,6 +11,7 @@ import { renderSourcesPage } from "../web/client/src/pages/sources/index.js";
 describe("sources gallery page", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    document.body.innerHTML = "";
     window.localStorage.clear();
     vi.stubGlobal("fetch", vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -255,6 +256,86 @@ describe("sources gallery page", () => {
     expect(page.textContent).not.toContain("Raw clipping item");
   });
 
+  it("keeps selected article refs for chat even after filtering hides the selected card", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/search?")) {
+        return ok({
+          scope: "local",
+          mode: "hybrid",
+          local: {
+            mode: "hybrid",
+            results: [
+              {
+                id: "source-1",
+                path: "sources_full/demo.md",
+                title: "Compiled source item",
+                layer: "source",
+                excerpt: "source excerpt",
+                tags: ["Archive"],
+                modifiedAt: "2026-04-19T10:00:00.000Z",
+              },
+            ],
+          },
+          web: { configured: false, results: [] },
+        });
+      }
+      if (url.includes("/api/source-gallery?")) {
+        return ok({
+          items: [
+            {
+              id: "raw-1",
+              path: "raw/剪藏/demo.md",
+              title: "Raw clipping item",
+              layer: "raw",
+              bucket: "剪藏",
+              tags: ["AI", "收藏"],
+              modifiedAt: "2026-04-20T06:00:00.000Z",
+              excerpt: "raw excerpt",
+              previewImageUrl: "",
+              mediaCount: 1,
+              mediaKinds: ["audio"],
+            },
+            {
+              id: "source-1",
+              path: "sources_full/demo.md",
+              title: "Compiled source item",
+              layer: "source",
+              bucket: "sources_full",
+              tags: ["Archive"],
+              modifiedAt: "2026-04-19T10:00:00.000Z",
+              excerpt: "source excerpt",
+              previewImageUrl: "",
+              mediaCount: 2,
+              mediaKinds: ["image", "audio"],
+            },
+          ],
+        });
+      }
+      return ok({});
+    });
+
+    const page = renderSourcesPage();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLInputElement>("[data-source-gallery-select='raw-1']")?.click();
+
+    const query = page.querySelector<HTMLInputElement>("[data-source-gallery-query]");
+    query!.value = "Archive";
+    query!.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLButtonElement>("[data-source-gallery-batch='chat']")?.click();
+
+    expect(window.localStorage.getItem("llmWiki.pendingChatArticleRefs")).toBe(JSON.stringify(["raw/剪藏/demo.md"]));
+    expect(window.location.hash).toBe("#/chat");
+  });
+
   it("opens a fullscreen workspace with rendered content and chat panel", async () => {
     const fetchMock = vi.mocked(fetch);
     const page = renderSourcesPage();
@@ -287,6 +368,48 @@ describe("sources gallery page", () => {
     );
   });
 
+  it("reports workspace open failures through page status instead of leaving an unhandled action", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/source-gallery?")) {
+        return ok({
+          items: [
+            {
+              id: "source-1",
+              path: "sources_full/demo.md",
+              title: "Compiled source item",
+              layer: "source",
+              bucket: "sources_full",
+              tags: ["Archive"],
+              modifiedAt: "2026-04-19T10:00:00.000Z",
+              createdAt: "2026-04-19T10:00:00.000Z",
+              excerpt: "source excerpt",
+              previewImageUrl: "",
+              mediaCount: 2,
+              mediaKinds: ["image", "audio"],
+            },
+          ],
+        });
+      }
+      if (url.endsWith("/api/source-gallery/source-1")) {
+        return fail("workspace unavailable");
+      }
+      return ok({});
+    });
+
+    const page = renderSourcesPage();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLElement>("[data-source-gallery-view='source-1']")?.click();
+    await flush();
+    await flush();
+
+    expect(page.querySelector("[data-source-gallery-status]")?.textContent).toContain("workspace unavailable");
+    expect(document.querySelector("[data-source-gallery-workspace='true']")).toBeNull();
+  });
+
   it("sends guided-ingest chat messages from the fullscreen workspace", async () => {
     const fetchMock = vi.mocked(fetch);
     const page = renderSourcesPage();
@@ -314,6 +437,99 @@ describe("sources gallery page", () => {
     expect(document.querySelector("[data-source-workspace-messages]")?.textContent).toContain("已按当前源料生成整理建议。");
   });
 
+  it("binds workspace controls without interpolating raw ids into internal selectors", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/source-gallery?")) {
+        return ok({
+          items: [
+            {
+              id: "source-1'boom",
+              path: "sources_full/special.md",
+              title: "Special source item",
+              layer: "source",
+              bucket: "sources_full",
+              tags: ["Archive"],
+              modifiedAt: "2026-04-19T10:00:00.000Z",
+              createdAt: "2026-04-19T10:00:00.000Z",
+              excerpt: "source excerpt",
+              previewImageUrl: "",
+              mediaCount: 0,
+              mediaKinds: [],
+            },
+          ],
+        });
+      }
+      if (url.endsWith("/api/source-gallery/source-1'boom") || url.endsWith("/api/source-gallery/source-1%27boom")) {
+        return ok({
+          id: "source-1'boom",
+          title: "Special source item",
+          path: "sources_full/special.md",
+          raw: "# Special\n\nArchive",
+          html: "<h1>Special</h1><p>Archive</p>",
+          media: [],
+          mediaCount: 0,
+          mediaKinds: [],
+        });
+      }
+      if (url.endsWith("/api/chat") && url !== "/api/chat/chat-special/messages") {
+        return ok({
+          id: "chat-special",
+          title: "源料录入：Special source item",
+          articleRefs: ["sources_full/special.md"],
+          messages: [],
+        });
+      }
+      if (url.endsWith("/api/chat/chat-special")) {
+        return ok({
+          id: "chat-special",
+          title: "源料录入：Special source item",
+          articleRefs: ["sources_full/special.md"],
+          messages: [],
+        });
+      }
+      if (url.endsWith("/api/chat/chat-special/messages")) {
+        return ok({
+          id: "chat-special",
+          title: "源料录入：Special source item",
+          articleRefs: ["sources_full/special.md"],
+          messages: [
+            { id: "m1", role: "assistant", content: "特殊源料也能发送消息。", createdAt: "2026-04-24T00:00:01.000Z" },
+          ],
+        });
+      }
+      return ok({});
+    });
+
+    const page = renderSourcesPage();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLElement>("[data-source-gallery-view]")?.click();
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    const workspace = document.querySelector<HTMLElement>("[data-source-gallery-workspace='true']");
+    expect(workspace).toBeTruthy();
+
+    const input = workspace?.querySelector<HTMLTextAreaElement>("[data-source-workspace-input]");
+    input!.value = "特殊 ID 测试";
+    workspace?.querySelector<HTMLButtonElement>("[data-source-workspace-send]")?.click();
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/chat/chat-special/messages",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(workspace?.querySelector("[data-source-workspace-messages]")?.textContent).toContain("特殊源料也能发送消息。");
+  });
+
   it("queues compile from the source workspace using the source and guided-ingest conversation", async () => {
     const fetchMock = vi.mocked(fetch);
     const page = renderSourcesPage();
@@ -339,6 +555,82 @@ describe("sources gallery page", () => {
     );
     expect(page.querySelector("[data-source-gallery-status]")?.textContent?.toLowerCase()).toContain("compile");
   });
+
+  it("reports workspace delete failures through page status", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === "DELETE" && url === "/api/source-gallery") {
+        return fail("delete failed");
+      }
+      if (url.includes("/api/source-gallery?")) {
+        return ok({
+          items: [
+            {
+              id: "source-1",
+              path: "sources_full/demo.md",
+              title: "Compiled source item",
+              layer: "source",
+              bucket: "sources_full",
+              tags: ["Archive"],
+              modifiedAt: "2026-04-19T10:00:00.000Z",
+              createdAt: "2026-04-19T10:00:00.000Z",
+              excerpt: "source excerpt",
+              previewImageUrl: "",
+              mediaCount: 2,
+              mediaKinds: ["image", "audio"],
+            },
+          ],
+        });
+      }
+      if (url.endsWith("/api/source-gallery/source-1")) {
+        return ok({
+          id: "source-1",
+          title: "Compiled source item",
+          path: "sources_full/demo.md",
+          raw: "# Source\n\nArchive",
+          html: "<h1>Source</h1><p>Archive</p>",
+          media: [],
+          mediaCount: 2,
+          mediaKinds: ["image", "audio"],
+        });
+      }
+      if (url.endsWith("/api/chat") && url !== "/api/chat/chat-source-1/messages") {
+        return ok({
+          id: "chat-source-1",
+          title: "源料录入：Compiled source item",
+          articleRefs: ["sources_full/demo.md"],
+          messages: [],
+        });
+      }
+      if (url.endsWith("/api/chat/chat-source-1")) {
+        return ok({
+          id: "chat-source-1",
+          title: "源料录入：Compiled source item",
+          articleRefs: ["sources_full/demo.md"],
+          messages: [],
+        });
+      }
+      return ok({});
+    });
+
+    const page = renderSourcesPage();
+    await flush();
+    await flush();
+
+    page.querySelector<HTMLElement>("[data-source-gallery-view='source-1']")?.click();
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    document.querySelector<HTMLButtonElement>("[data-source-workspace-delete='source-1']")?.click();
+    await flush();
+    await flush();
+
+    expect(page.querySelector("[data-source-gallery-status]")?.textContent).toContain("delete failed");
+    expect(document.querySelector("[data-source-gallery-workspace='true']")).toBeTruthy();
+  });
 });
 
 function ok(data: unknown) {
@@ -353,6 +645,14 @@ function accepted(data: unknown) {
     ok: true,
     status: 202,
     json: async () => ({ success: true, data }),
+  };
+}
+
+function fail(error: string) {
+  return {
+    ok: false,
+    status: 500,
+    json: async () => ({ success: false, error }),
   };
 }
 

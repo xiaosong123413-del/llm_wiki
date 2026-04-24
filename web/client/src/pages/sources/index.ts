@@ -81,6 +81,7 @@ interface SourceWorkspaceCompileResult {
 interface PageState {
   items: SourceGalleryItem[];
   selectedIds: Set<string>;
+  selectedPaths: Map<string, string>;
   refreshId: number;
   sort: SourceGallerySort;
 }
@@ -170,6 +171,7 @@ export function renderSourcesPage(): HTMLElement {
   const state: PageState = {
     items: [],
     selectedIds: new Set(),
+    selectedPaths: new Map(),
     refreshId: 0,
     sort: "modified-desc",
   };
@@ -186,8 +188,10 @@ function bindEvents(root: HTMLElement, state: PageState): void {
     if (target instanceof HTMLInputElement && target.dataset.sourceGallerySelect) {
       if (target.checked) {
         state.selectedIds.add(target.dataset.sourceGallerySelect);
+        syncSelectedPath(state, target.dataset.sourceGallerySelect);
       } else {
         state.selectedIds.delete(target.dataset.sourceGallerySelect);
+        state.selectedPaths.delete(target.dataset.sourceGallerySelect);
       }
       syncSelectionBar(root, state);
       return;
@@ -201,7 +205,8 @@ function bindEvents(root: HTMLElement, state: PageState): void {
 
     const viewButton = target.closest<HTMLButtonElement>("[data-source-gallery-view]");
     if (viewButton) {
-      void openSourceWorkspace(root, state, viewButton.dataset.sourceGalleryView ?? "");
+      void openSourceWorkspace(root, state, viewButton.dataset.sourceGalleryView ?? "")
+        .catch((error) => setStatus(root, error));
       return;
     }
 
@@ -212,25 +217,6 @@ function bindEvents(root: HTMLElement, state: PageState): void {
         .catch((error) => setStatus(root, error));
       return;
     }
-
-    const closeWorkspace = target.closest<HTMLElement>("[data-source-workspace-close]");
-    if (closeWorkspace) {
-      closeSourceWorkspace();
-      return;
-    }
-
-    const deleteWorkspace = target.closest<HTMLElement>("[data-source-workspace-delete]");
-    if (deleteWorkspace) {
-      void deleteSources(root, state, [deleteWorkspace.getAttribute("data-source-workspace-delete") ?? ""]);
-      return;
-    }
-
-    const swapWorkspace = target.closest<HTMLElement>("[data-source-workspace-swap]");
-    if (swapWorkspace) {
-      toggleSourceWorkspaceOrder();
-      return;
-    }
-
   });
 
   root.querySelector<HTMLInputElement>("[data-source-gallery-query]")?.addEventListener("input", () => {
@@ -260,6 +246,7 @@ async function refreshGallery(root: HTMLElement, state: PageState): Promise<void
     const items = query ? await searchGalleryItems(data.items, query) : data.items;
     if (refreshId !== state.refreshId) return;
     state.items = items;
+    syncSelectedPaths(state);
     renderCards(grid, state);
     syncSelectionBar(root, state);
     setStatus(root, TEXT.itemCount(state.items.length));
@@ -326,12 +313,15 @@ async function runBatchAction(root: HTMLElement, state: PageState, action: strin
   if (ids.length === 0) return;
   if (action === "clear") {
     state.selectedIds.clear();
+    state.selectedPaths.clear();
     renderCards(root.querySelector<HTMLElement>("[data-source-gallery-grid]")!, state);
     syncSelectionBar(root, state);
     return;
   }
   if (action === "chat") {
-    const refs = state.items.filter((item) => state.selectedIds.has(item.id)).map((item) => item.path);
+    const refs = ids
+      .map((id) => state.selectedPaths.get(id))
+      .filter((path): path is string => Boolean(path));
     window.localStorage.setItem("llmWiki.pendingChatArticleRefs", JSON.stringify(refs));
     window.location.hash = "#/chat";
     return;
@@ -413,9 +403,9 @@ async function openSourceWorkspace(root: HTMLElement, state: PageState, id: stri
     </div>
   `;
   bindSourceWorkspaceResize(workspace);
-  const form = workspace.querySelector<HTMLFormElement>(`[data-source-workspace-form='${detail.id}']`);
-  const sendButton = workspace.querySelector<HTMLButtonElement>(`[data-source-workspace-send='${detail.id}']`);
-  const compileButton = workspace.querySelector<HTMLButtonElement>(`[data-source-workspace-compile='${detail.id}']`);
+  const form = workspace.querySelector<HTMLFormElement>("[data-source-workspace-form]");
+  const sendButton = workspace.querySelector<HTMLButtonElement>("[data-source-workspace-send]");
+  const compileButton = workspace.querySelector<HTMLButtonElement>("[data-source-workspace-compile]");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     void sendSourceWorkspaceMessage(root, state, detail.id);
@@ -434,7 +424,8 @@ async function openSourceWorkspace(root: HTMLElement, state: PageState, id: stri
     }
     const deleteButton = target.closest<HTMLElement>("[data-source-workspace-delete]");
     if (deleteButton) {
-      void deleteSources(root, state, [deleteButton.getAttribute("data-source-workspace-delete") ?? ""]);
+      void deleteSources(root, state, [deleteButton.getAttribute("data-source-workspace-delete") ?? ""])
+        .catch((error) => setStatus(root, error));
       return;
     }
     if (target.closest("[data-source-workspace-swap]")) {
@@ -480,7 +471,7 @@ async function ensureSourceWorkspaceConversation(detail: SourceGalleryDetail): P
 async function sendSourceWorkspaceMessage(root: HTMLElement, state: PageState, id: string): Promise<void> {
   const workspace = document.querySelector<HTMLElement>("[data-source-gallery-workspace='true']");
   if (!workspace) return;
-  const input = workspace.querySelector<HTMLTextAreaElement>(`[data-source-workspace-input='${id}']`);
+  const input = workspace.querySelector<HTMLTextAreaElement>("[data-source-workspace-input]");
   const conversationId = workspace.dataset.sourceWorkspaceConversationId;
   if (!input || !conversationId) return;
   const content = input.value.trim();
@@ -586,6 +577,7 @@ async function deleteSources(
   }
   for (const id of filteredIds) {
     state.selectedIds.delete(id);
+    state.selectedPaths.delete(id);
   }
   if (closeModalAfterDelete) {
     closeSourceWorkspace();
@@ -641,6 +633,19 @@ function formatDate(value: string): string {
 
 function normalizePath(value: string): string {
   return value.replace(/\\/g, "/");
+}
+
+function syncSelectedPath(state: PageState, id: string): void {
+  const item = state.items.find((entry) => entry.id === id);
+  if (item) {
+    state.selectedPaths.set(id, item.path);
+  }
+}
+
+function syncSelectedPaths(state: PageState): void {
+  for (const id of state.selectedIds) {
+    syncSelectedPath(state, id);
+  }
 }
 
 function resolveCardTitle(item: SourceGalleryItem): string {
