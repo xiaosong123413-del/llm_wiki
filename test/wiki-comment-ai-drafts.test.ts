@@ -121,4 +121,31 @@ describe("wiki comment ai drafts", () => {
     expect(getWikiCommentAiDraft(runtimeRoot, comment.id)).toBeNull();
     expect(findWikiCommentById(runtimeRoot, comment.id)?.resolved).toBe(false);
   });
+
+  it("rejects draft generation for comments with empty text", async () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "llmwiki-comment-ai-project-"));
+    const sourceVaultRoot = fs.mkdtempSync(path.join(os.tmpdir(), "llmwiki-comment-ai-source-"));
+    const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "llmwiki-comment-ai-runtime-"));
+    tempDirs.push(projectRoot, sourceVaultRoot, runtimeRoot);
+
+    const sourceFile = path.join(sourceVaultRoot, "wiki", "concepts", "empty.md");
+    fs.mkdirSync(path.dirname(sourceFile), { recursive: true });
+    fs.writeFileSync(sourceFile, "# Empty\n\nAlpha\n", "utf8");
+
+    const comment = createWikiComment(runtimeRoot, {
+      path: "wiki/concepts/empty.md",
+      quote: "Alpha",
+      text: "",
+      start: 0,
+      end: 5,
+    });
+
+    await expect(generateWikiCommentAiDraft({
+      projectRoot,
+      sourceVaultRoot,
+      runtimeRoot,
+      commentId: comment.id,
+      provider: createFakeProvider("# Empty\n\nBetter Alpha\n"),
+    })).rejects.toThrow("comment text is required");
+  });
 });

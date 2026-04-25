@@ -58,7 +58,10 @@ export function resolveRuntimeWikiLogicalPath(target: string): string | null {
 }
 
 export function resolveEditableSourceMarkdownPath(cfg: ServerConfig, logicalPath: string): string | null {
-  const normalized = normalizeLogicalPath(logicalPath);
+  const normalized = normalizeEditableLogicalPath(logicalPath);
+  if (!normalized) {
+    return null;
+  }
   if (!(normalized === "wiki" || normalized.startsWith("wiki/"))) {
     return null;
   }
@@ -74,6 +77,18 @@ export function resolveEditableSourceMarkdownPath(cfg: ServerConfig, logicalPath
   } catch {
     return null;
   }
+}
+
+function normalizeEditableLogicalPath(value: string): string | null {
+  const slashNormalized = value.replace(/\\/g, "/");
+  if (path.posix.isAbsolute(slashNormalized)) {
+    return null;
+  }
+  const normalized = path.posix.normalize(slashNormalized).replace(/\/+$/g, "");
+  if (!normalized || normalized === "." || normalized === ".." || normalized.startsWith("../")) {
+    return null;
+  }
+  return normalized;
 }
 
 export function toLogicalPath(cfg: ServerConfig, absolutePath: string): string | null {

@@ -88,4 +88,18 @@ describe("wiki comment ai routes", () => {
     expect(discardWikiCommentAiDraft).toHaveBeenCalledWith(cfg.runtimeRoot, "comment-1", "draft-1");
     expect(response.json).toHaveBeenCalledWith({ success: true });
   });
+
+  it("returns a structured error when create fails", async () => {
+    generateWikiCommentAiDraft.mockRejectedValue(new Error("comment text is required"));
+
+    const handler = handleWikiCommentAiDraftCreate(cfg);
+    const response = createResponse();
+    await handler({ params: { id: "comment-1" } } as never, response as never);
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.json).toHaveBeenCalledWith({
+      success: false,
+      error: "comment text is required",
+    });
+  });
 });

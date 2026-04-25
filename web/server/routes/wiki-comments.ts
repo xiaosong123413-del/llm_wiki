@@ -111,13 +111,20 @@ export function handleWikiCommentAiDraftCreate(cfg: ServerConfig) {
       res.status(400).json({ success: false, error: "id is required" });
       return;
     }
-    const draft = await generateWikiCommentAiDraft({
-      projectRoot: cfg.projectRoot,
-      sourceVaultRoot: cfg.sourceVaultRoot,
-      runtimeRoot: cfg.runtimeRoot,
-      commentId: id,
-    });
-    res.json({ success: true, data: draft });
+    try {
+      const draft = await generateWikiCommentAiDraft({
+        projectRoot: cfg.projectRoot,
+        sourceVaultRoot: cfg.sourceVaultRoot,
+        runtimeRoot: cfg.runtimeRoot,
+        commentId: id,
+      });
+      res.json({ success: true, data: draft });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 }
 
@@ -129,14 +136,21 @@ export function handleWikiCommentAiDraftConfirm(cfg: ServerConfig) {
       res.status(400).json({ success: false, error: "comment id and draft id are required" });
       return;
     }
-    const draft = await confirmWikiCommentAiDraft({
-      projectRoot: cfg.projectRoot,
-      sourceVaultRoot: cfg.sourceVaultRoot,
-      runtimeRoot: cfg.runtimeRoot,
-      commentId,
-      draftId,
-    });
-    res.json({ success: true, data: draft });
+    try {
+      const result = await confirmWikiCommentAiDraft({
+        projectRoot: cfg.projectRoot,
+        sourceVaultRoot: cfg.sourceVaultRoot,
+        runtimeRoot: cfg.runtimeRoot,
+        commentId,
+        draftId,
+      });
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 }
 

@@ -41,16 +41,18 @@ export interface ConfirmWikiCommentAiDraftInput {
   draftId: string;
 }
 
+export interface ConfirmWikiCommentAiDraftResult {
+  id: string;
+  pagePath: string;
+}
+
 const STORE_DIR = ".llmwiki";
 const STORE_FILE = "wiki-comment-ai-drafts.json";
 
 export async function generateWikiCommentAiDraft(
   input: GenerateWikiCommentAiDraftInput,
 ): Promise<WikiCommentAiDraftRecord> {
-  const comment = findWikiCommentById(input.runtimeRoot, input.commentId);
-  if (!comment) {
-    throw new Error("comment not found");
-  }
+  const comment = requireSolvableComment(input.runtimeRoot, input.commentId);
 
   const cfg = toServerConfig(input);
   const sourceFile = resolveEditableSourceMarkdownPath(cfg, comment.path);
@@ -61,11 +63,11 @@ export async function generateWikiCommentAiDraft(
   const currentSource = fs.readFileSync(sourceFile, "utf8");
   const provider = input.provider ?? resolveAgentRuntimeProvider(input.projectRoot, null, `wiki-comment-ai-draft:${comment.id}`);
   const promptSummary = buildPromptSummary(comment, currentSource);
-  const proposedContent = await provider.complete(
+  const proposedContent = normalizeWrittenMarkdown(await provider.complete(
     "You rewrite the source markdown to address the comment. Return only the full updated markdown.",
     [{ role: "user", content: promptSummary }],
     1600,
-  );
+  ));
 
   const now = new Date().toISOString();
   const draft: WikiCommentAiDraftRecord = {
@@ -76,7 +78,7 @@ export async function generateWikiCommentAiDraft(
     baseVersion: hashContent(currentSource),
     status: "done-await-confirm",
     promptSummary,
-    proposedContent: normalizeWrittenMarkdown(proposedContent),
+    proposedContent,
     diffText: buildDiffText(currentSource, proposedContent),
     createdAt: now,
     updatedAt: now,
@@ -95,10 +97,15 @@ export function getWikiCommentAiDraft(runtimeRoot: string, commentId: string): W
 
 export async function confirmWikiCommentAiDraft(
   input: ConfirmWikiCommentAiDraftInput,
-): Promise<WikiCommentAiDraftRecord> {
+): Promise<ConfirmWikiCommentAiDraftResult> {
   const draft = getWikiCommentAiDraft(input.runtimeRoot, input.commentId);
   if (!draft || draft.id !== input.draftId) {
     throw new Error("draft not found");
+  }
+
+  const comment = findWikiCommentById(input.runtimeRoot, input.commentId);
+  if (!comment) {
+    throw new Error("comment not found");
   }
 
   const currentSource = fs.readFileSync(draft.sourceFile, "utf8");
@@ -108,18 +115,16 @@ export async function confirmWikiCommentAiDraft(
 
   fs.mkdirSync(path.dirname(draft.sourceFile), { recursive: true });
   fs.writeFileSync(draft.sourceFile, normalizeWrittenMarkdown(draft.proposedContent), "utf8");
-
-  const comment = findWikiCommentById(input.runtimeRoot, input.commentId);
-  if (!comment) {
-    throw new Error("comment not found");
-  }
   updateWikiComment(input.runtimeRoot, comment.path, comment.id, { resolved: true });
 
   const store = readStore(input.runtimeRoot);
   delete store.draftsByCommentId[input.commentId];
   writeStore(input.runtimeRoot, store);
 
-  return draft;
+  return {
+    id: draft.id,
+    pagePath: draft.pagePath,
+  };
 }
 
 export function discardWikiCommentAiDraft(runtimeRoot: string, commentId: string, draftId: string): boolean {
@@ -155,6 +160,23 @@ function buildPromptSummary(
     "",
     sourceMarkdown,
   ].join("\n");
+}
+
+function requireSolvableComment(
+  runtimeRoot: string,
+  commentId: string,
+): { id: string; path: string; quote: string; text: string } {
+  const comment = findWikiCommentById(runtimeRoot, commentId);
+  if (!comment) {
+    throw new Error("comment not found");
+  }
+  if (comment.resolved) {
+    throw new Error("comment already resolved");
+  }
+  if (!comment.text.trim()) {
+    throw new Error("comment text is required");
+  }
+  return comment;
 }
 
 function buildDiffText(currentContent: string, proposedContent: string): string {
