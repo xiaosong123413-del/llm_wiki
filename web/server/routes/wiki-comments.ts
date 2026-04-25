@@ -11,6 +11,7 @@ import {
   discardWikiCommentAiDraft,
   generateWikiCommentAiDraft,
 } from "../services/wiki-comment-ai-drafts.js";
+import { readPagePayload } from "./pages.js";
 
 export function handleWikiCommentsList(cfg: ServerConfig) {
   return (req: Request, res: Response) => {
@@ -144,7 +145,14 @@ export function handleWikiCommentAiDraftConfirm(cfg: ServerConfig) {
         commentId,
         draftId,
       });
-      res.json({ success: true, data: result });
+      const page = await Promise.resolve(readPagePayload(cfg, result.pagePath));
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          page,
+        },
+      });
     } catch (error) {
       res.status(400).json({
         success: false,

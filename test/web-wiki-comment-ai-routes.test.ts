@@ -3,11 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const generateWikiCommentAiDraft = vi.fn();
 const confirmWikiCommentAiDraft = vi.fn();
 const discardWikiCommentAiDraft = vi.fn();
+const readPagePayload = vi.fn();
 
 vi.mock("../web/server/services/wiki-comment-ai-drafts.js", () => ({
   generateWikiCommentAiDraft,
   confirmWikiCommentAiDraft,
   discardWikiCommentAiDraft,
+}));
+
+vi.mock("../web/server/routes/pages.js", () => ({
+  readPagePayload,
 }));
 
 const { handleWikiCommentAiDraftCreate, handleWikiCommentAiDraftConfirm, handleWikiCommentAiDraftDiscard } =
@@ -63,6 +68,11 @@ describe("wiki comment ai routes", () => {
       id: "draft-1",
       pagePath: "wiki/concepts/test.md",
     });
+    readPagePayload.mockResolvedValue({
+      path: "wiki/concepts/test.md",
+      title: "Test",
+      html: "<p>updated</p>",
+    });
 
     const handler = handleWikiCommentAiDraftConfirm(cfg);
     const response = createResponse();
@@ -72,9 +82,16 @@ describe("wiki comment ai routes", () => {
       commentId: "comment-1",
       draftId: "draft-1",
     }));
+    expect(readPagePayload).toHaveBeenCalledWith(cfg, "wiki/concepts/test.md");
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
       success: true,
-      data: expect.objectContaining({ pagePath: "wiki/concepts/test.md" }),
+      data: expect.objectContaining({
+        pagePath: "wiki/concepts/test.md",
+        page: expect.objectContaining({
+          path: "wiki/concepts/test.md",
+          title: "Test",
+        }),
+      }),
     }));
   });
 

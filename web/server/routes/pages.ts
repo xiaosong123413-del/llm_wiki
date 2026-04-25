@@ -74,6 +74,18 @@ interface ChatMessageEntry {
 const PAGE_RENDER_CACHE_LIMIT = 24;
 const pageRenderCache = new Map<string, CachedPagePayload>();
 
+export interface PagePayload {
+  path: string;
+  title: string | null;
+  frontmatter: Record<string, unknown> | null;
+  html: string;
+  raw: string;
+  sizeBytes: number;
+  modifiedAt: string;
+  aliases: string[];
+  sourceEditable: boolean;
+}
+
 export function handlePage(cfg: ServerConfig) {
   const renderer = createRenderer({
     wikilinkResolver: (target) => {
@@ -98,31 +110,61 @@ export function handlePage(cfg: ServerConfig) {
       res.status(400).json({ error: "missing or invalid `path` query" });
       return;
     }
-
-    // Default to wiki/index.md if a directory is requested.
-    let full = resolveContentPath(cfg, rel);
-    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
-      full = path.join(full, "index.md");
-    }
-
-    if (!/\.(md|markdown|txt)$/i.test(full)) full += ".md";
-
-    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+    const payload = readPagePayload(cfg, rel, renderer);
+    if (!payload) {
       res.status(404).json({ error: "file not found", path: rel });
       return;
     }
-
-    const logicalPath = toLogicalPath(cfg, full);
-    if (!logicalPath) {
-      res.status(403).json({ error: "path escapes wiki root" });
-      return;
-    }
-
-    const stat = fs.statSync(full);
-    const payload = readOrRenderPage(cfg, logicalPath, full, stat, renderer);
+    const logicalPath = payload.path;
     touchClaimsForPage(cfg.runtimeRoot, logicalPath);
     res.json(payload);
   };
+}
+
+export function readPagePayload(
+  cfg: ServerConfig,
+  logicalPath: string,
+  renderer = createRenderer({
+    wikilinkResolver: (target) => {
+      const resolved = resolveTargetPath(cfg, target);
+      if (resolved) {
+        return {
+          href: `/?page=${encodeURIComponent(resolved.logicalPath)}`,
+          exists: true,
+        };
+      }
+      return {
+        href: `/?page=${encodeURIComponent(target)}`,
+        exists: false,
+      };
+    },
+  }),
+): PagePayload | null {
+  const rel = safeRel(logicalPath);
+  if (!rel) {
+    return null;
+  }
+
+  let full = resolveContentPath(cfg, rel);
+  if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
+    full = path.join(full, "index.md");
+  }
+
+  if (!/\.(md|markdown|txt)$/i.test(full)) {
+    full += ".md";
+  }
+
+  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+    return null;
+  }
+
+  const normalizedPath = toLogicalPath(cfg, full);
+  if (!normalizedPath) {
+    return null;
+  }
+
+  const stat = fs.statSync(full);
+  return readOrRenderPage(cfg, normalizedPath, full, stat, renderer);
 }
 
 function readOrRenderPage(
@@ -131,7 +173,7 @@ function readOrRenderPage(
   fullPath: string,
   stat: fs.Stats,
   renderer: ReturnType<typeof createRenderer>,
-): CachedPagePayload["response"] {
+): PagePayload {
   const cached = pageRenderCache.get(fullPath);
   if (cached && cached.sourceMtimeMs === stat.mtimeMs && cached.sourceSizeBytes === stat.size) {
     return cached.response;
