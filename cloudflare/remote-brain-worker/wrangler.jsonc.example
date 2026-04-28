@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "llm-wiki-remote-brain",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "triggers": {
+    "crons": ["30 15 * * *"]
+  },
+  "vars": {
+    "LLM_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "OCR_MODEL": "@cf/llava-hf/llava-1.5-7b-hf",
+    "TRANSCRIBE_MODEL": "@cf/openai/whisper",
+    "EMBEDDING_MODEL": "@cf/baai/bge-base-en-v1.5",
+    "PUBLIC_MEDIA_BASE_URL": "https://your-remote-brain-worker.workers.dev",
+    "CLOUDFLARE_SEARCH_ENDPOINT": "https://api.tavily.com",
+    "CLOUDFLARE_SEARCH_MODEL": ""
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "llm-wiki-remote-brain",
+      "database_id": "replace-with-d1-database-id"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "WIKI_BUCKET",
+      "bucket_name": "llm-wiki-remote-brain"
+    },
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "llm-wiki-media"
+    }
+  ],
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "llm-wiki"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  }
+}

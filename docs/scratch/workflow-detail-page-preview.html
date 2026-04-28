@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workflow Detail Mirror Preview</title>
+    <style>
+      :root {
+        --primary: #6b6ff4;
+        --primary-soft: rgba(107, 111, 244, 0.1);
+        --text: #1f2540;
+        --text-secondary: #697089;
+        --text-muted: #6d738c;
+        --border: #dde3fb;
+        --border-strong: #e2e6fb;
+        --surface: rgba(255, 255, 255, 0.98);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #fcfdff 0%, #f5f7ff 100%);
+        color: var(--text);
+      }
+
+      body {
+        padding: 32px;
+      }
+
+      .automation-page {
+        min-height: 100%;
+        color: var(--text);
+      }
+
+      .automation-detail__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .automation-detail__header-main {
+        min-width: 0;
+      }
+
+      .automation-detail__header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .automation-page__eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .automation-detail__header h1 {
+        margin: 6px 0 8px;
+        font-size: 34px;
+        line-height: 1.08;
+      }
+
+      .automation-detail__header p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .btn,
+      .automation-list-card__source {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 18px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        text-decoration: none;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.98);
+      }
+
+      .automation-list-card__source {
+        background: var(--primary-soft);
+        border-color: transparent;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .automation-detail__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+        min-height: 0;
+      }
+
+      .automation-detail__canvas {
+        position: relative;
+        min-height: 0;
+        border-radius: 24px;
+        border: 1px solid var(--border-strong);
+        background: #fff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 24px 52px rgba(95, 113, 198, 0.08);
+        overflow: hidden;
+      }
+
+      .automation-detail__mermaid-loading,
+      .automation-detail__mermaid-error {
+        padding: 28px 32px;
+        color: #5f6b85;
+      }
+
+      .automation-detail__mermaid-diagram {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 16px 18px 20px;
+        overflow: auto;
+        min-height: 0;
+        background:
+          radial-gradient(circle at top left, rgba(104, 126, 255, 0.08), transparent 34%),
+          linear-gradient(180deg, rgba(247, 248, 255, 0.95), #ffffff 28%);
+      }
+
+      .automation-detail__mermaid-surface {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .automation-detail__mermaid-diagram svg {
+        display: block;
+        flex: 0 0 auto;
+        min-width: 0;
+        margin: 0 auto;
+      }
+
+      .automation-detail__comment-pins {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .automation-detail__comment-pin {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border: 3px solid #fff;
+        border-radius: 999px;
+        background: var(--primary);
+        box-shadow: 0 10px 24px rgba(107, 111, 244, 0.28);
+        transform: translate(-50%, -50%);
+        pointer-events: auto;
+      }
+
+      .automation-detail__comment-pin[data-selected="true"] {
+        box-shadow: 0 0 0 4px rgba(107, 111, 244, 0.18), 0 10px 24px rgba(107, 111, 244, 0.28);
+      }
+
+      .automation-detail__comment-pin[data-orphaned="true"] {
+        background: #f59e0b;
+      }
+
+      .automation-detail__comment-panel {
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        box-shadow: 0 20px 48px rgba(101, 114, 191, 0.08);
+      }
+
+      .automation-detail__comment-hint {
+        color: var(--text-muted);
+        margin-bottom: 16px;
+        line-height: 1.6;
+      }
+
+      .automation-detail__comment-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .automation-detail__comment-item {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid #e5e8fb;
+        background: #fff;
+      }
+
+      .automation-detail__comment-input {
+        width: 100%;
+        min-height: 96px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        margin-bottom: 12px;
+        resize: vertical;
+        font: inherit;
+      }
+
+      .muted {
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <section class="automation-page automation-page--detail">
+      <header class="automation-detail__header">
+        <div class="automation-detail__header-main">
+          <div class="automation-page__eyebrow">WORKFLOW DETAIL</div>
+          <h1>编译链路</h1>
+          <p>从 sync-compile 同步原料、生成批次，到 llmwiki compile 更新页面、tiered memory 和发布结果的真实链路。</p>
+        </div>
+        <div class="automation-detail__header-actions">
+          <button type="button" class="btn btn-secondary">返回 Workflow</button>
+          <span class="automation-list-card__source">源码真实流程</span>
+        </div>
+      </header>
+
+      <section class="automation-detail__body">
+        <div class="automation-detail__canvas">
+          <div class="automation-detail__mermaid-diagram">
+            <div class="automation-detail__mermaid-surface">
+              <pre class="mermaid">
+flowchart TD
+    A["启动 sync compile<br/>scripts/sync-compile.mjs main()"] --> B["读取配置和运行根目录<br/>loadSyncCompileConfig() + resolveCompileRootsFromConfig()"]
+    B --> C["同步 Cloudflare 手机输入<br/>syncMobileEntriesFromCloudflare()"]
+    C --> D["确定 source_folders<br/>loadOrPromptSourceFolders()"]
+    D --> E["检查源目录并获取 live lock<br/>inspectSourceFolders() + acquireLiveLock()"]
+    E --> F["同步 Markdown 原料镜像<br/>syncMarkdownSources()"]
+    F --> G["同步附件副本镜像<br/>syncNonMarkdownAssets()"]
+    G --> H["读取待编译文件并生成批次<br/>readAutoCompileFiles() + consumeFlashDiaryAutoCompileAttempt() + selectNextBatch()"]
+    H --> I{"batches.length 是否为 0"}
+    I -->|是| J["写最终结果并发布当前 wiki<br/>writeFinalCompileResult() + publishWikiToCloudflare() + refreshEntityIndexSnapshot()"]
+    I -->|否| K["创建 staging run<br/>clearExistingStagingRuns() + createStagingRun()"]
+    K --> L["准备当前批次 sources<br/>prepareActiveSources()"]
+    L --> M["执行 llmwiki compile<br/>runCompile() -> compileCommand()"]
+    M --> N["检查 sources 并申请编译锁<br/>src/commands/compile.ts -> compile(process.cwd())"]
+    N --> O["检测变更并扩充受影响源<br/>runCompilePipeline() -> detectChanges() + findAffectedSources()"]
+    O --> P{"toCompile / deleted 是否为空"}
+    P -->|是| Q["只重建导航并记录 compile<br/>rebuildNavigation() + logCompile()"]
+    P -->|否| R["提取概念并补 late affected sources<br/>extractForSource() + findLateAffectedSources() + freezeFailedExtractions()"]
+    R --> S["更新 tiered memory<br/>updateTieredMemory()"]
+    S --> T["生成概念页并解析互链<br/>mergeExtractions() + generateMergedPage() + resolveLinks()"]
+    T --> U["重建导航并记录 compile<br/>rebuildNavigation() + logCompile()"]
+    Q --> V["当前 batch compile 返回<br/>for (const batch of batches)"]
+    U --> V
+    V --> W["发布 staging 结果并更新 batch state<br/>publishStagingRun() + writeBatchState() + writeFinalCompileResult()"]
+    W --> X["发布 Cloudflare wiki 并刷新实体快照<br/>publishWikiToCloudflare() + refreshEntityIndexSnapshot()"]
+              </pre>
+              <div class="automation-detail__comment-pins" aria-hidden="true">
+                <button class="automation-detail__comment-pin" style="left: 51%; top: 33%;" title="示例评论"></button>
+                <button class="automation-detail__comment-pin" data-selected="true" style="left: 55%; top: 62%;" title="选中的示例评论"></button>
+                <button class="automation-detail__comment-pin" data-orphaned="true" style="left: 47%; top: 82%;" title="失联示例评论"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="automation-detail__comment-panel">
+          <button type="button" class="btn btn-secondary">评论模式</button>
+          <div class="automation-detail__comment-hint">
+            进入评论模式后，再点击节点、连线或空白处添加评论。
+          </div>
+
+          <div class="automation-detail__comment-list">
+            <article class="automation-detail__comment-item">
+              <strong>当前草稿: node / compile-memory</strong>
+              <textarea class="automation-detail__comment-input">这里的“更新 tiered memory”前后留白太大。</textarea>
+              <button type="button" class="btn btn-secondary">保存评论</button>
+            </article>
+
+            <article class="automation-detail__comment-item">
+              <button type="button" class="btn btn-secondary">compile-memory · comment-1</button>
+              <div>这里的“更新 tiered memory”前后留白太大。</div>
+              <div class="muted">最后更新：2026-04-27 12:30</div>
+              <button type="button" class="btn btn-secondary">删除</button>
+            </article>
+
+            <article class="automation-detail__comment-item">
+              <button type="button" class="btn btn-secondary">mergeExtractions · comment-2</button>
+              <div>图整体太细太小，节点字号和卡片尺寸都该放大。</div>
+              <div class="muted">最后更新：2026-04-27 12:31</div>
+              <button type="button" class="btn btn-secondary">删除</button>
+            </article>
+
+            <article class="automation-detail__comment-item">
+              <button type="button" class="btn btn-secondary">旧节点 · comment-3</button>
+              <div>原目标已不存在，当前显示为保留图钉。</div>
+              <div class="muted">最后更新：2026-04-27 12:32</div>
+              <button type="button" class="btn btn-secondary">删除</button>
+            </article>
+          </div>
+        </aside>
+      </section>
+    </section>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        flowchart: {
+          useMaxWidth: false,
+          htmlLabels: true
+        },
+        theme: "default"
+      });
+    </script>
+  </body>
+</html>

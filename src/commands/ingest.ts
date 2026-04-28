@@ -10,6 +10,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { slugify, buildFrontmatter } from "../utils/markdown.js";
 import { MAX_SOURCE_CHARS, MIN_SOURCE_CHARS, SOURCES_DIR } from "../utils/constants.js";
 import * as output from "../utils/output.js";
+import { appendMaintenanceLog } from "../utils/maintenance-log.js";
 import ingestWeb from "../ingest/web.js";
 import ingestFile from "../ingest/file.js";
 
@@ -115,5 +116,15 @@ export default async function ingest(source: string): Promise<void> {
     "+",
     output.success(`Saved ${output.bold(title)} → ${output.source(savedPath)}`)
   );
+  await appendMaintenanceLog(process.cwd(), {
+    action: "ingest",
+    title,
+    details: {
+      source,
+      saved: savedPath,
+      truncated: result.truncated,
+      originalChars: result.originalChars,
+    },
+  });
   output.status("→", output.dim("Next: llmwiki compile"));
 }

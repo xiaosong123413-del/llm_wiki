@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" role="img" aria-label="设置页界面">
+  <rect width="1120" height="560" rx="28" fill="#F9F8FE"/>
+  <rect x="0" y="0" width="72" height="560" fill="#FAFAFE"/>
+  <rect x="24" y="488" width="32" height="32" rx="10" fill="#7C5CFC"/>
+  <rect x="118" y="52" width="928" height="96" rx="26" fill="#FFFFFF" stroke="#E8E5F0"/>
+  <text x="150" y="112" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="42" fill="#1A1A1A" font-weight="800">设置</text>
+  <rect x="118" y="176" width="928" height="86" rx="24" fill="#FFFFFF" stroke="#E8E5F0"/>
+  <text x="150" y="212" font-family="Segoe UI, sans-serif" font-size="13" fill="#7C5CFC" font-weight="800">PROJECT MEMORY</text>
+  <text x="150" y="244" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="24" fill="#1A1A1A" font-weight="800">项目日志</text>
+  <rect x="914" y="200" width="88" height="38" rx="14" fill="#F3F0FF" stroke="#7C5CFC"/>
+  <text x="942" y="225" font-family="Segoe UI, sans-serif" font-size="15" fill="#7C5CFC" font-weight="700">打开</text>
+  <rect x="118" y="286" width="540" height="190" rx="24" fill="#FFFFFF" stroke="#E8E5F0"/>
+  <text x="150" y="338" font-family="Segoe UI, sans-serif" font-size="24" fill="#1A1A1A" font-weight="800">仓库与同步</text>
+  <rect x="150" y="364" width="456" height="42" rx="14" fill="#F9F8FE" stroke="#E8E5F0"/>
+  <rect x="682" y="286" width="364" height="190" rx="24" fill="#FFFFFF" stroke="#E8E5F0"/>
+  <text x="714" y="338" font-family="Segoe UI, sans-serif" font-size="24" fill="#1A1A1A" font-weight="800">LLM / API</text>
+  <text x="714" y="384" font-family="Segoe UI, sans-serif" font-size="16" fill="#555555">地址 / 密钥 / 模型</text>
+</svg>

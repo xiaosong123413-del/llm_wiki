@@ -3,40 +3,48 @@
  *
  * Each rule is a function that takes a project root path and returns
  * an array of LintResult diagnostics. Rules perform pure static analysis
- * with no LLM calls — they inspect frontmatter, wikilinks, citations,
+ * with no LLM calls - they inspect frontmatter, wikilinks, citations,
  * and file structure to find potential issues.
  */
 
-import { readdir, readFile } from "fs/promises";
-import { existsSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import path from "path";
 import { parseFrontmatter, slugify } from "../utils/markdown.js";
-import { CONCEPTS_DIR, QUERIES_DIR, SOURCES_DIR } from "../utils/constants.js";
+import { SOURCES_DIR, SOURCES_FULL_DIR } from "../utils/constants.js";
 import type { LintResult } from "./types.js";
+import { buildPageSlugSet, collectAllPages, normalizeWikilinkTarget } from "./wiki-page-index.js";
 
-/** Minimum body length (in characters) for a page to be considered non-empty. */
 const MIN_BODY_LENGTH = 50;
-
-/** Pattern matching [[Wikilink Title]] references in markdown content. */
 const WIKILINK_PATTERN = /\[\[([^\]]+)\]\]/g;
-
-/** Pattern matching ^[filename.md] citation markers in markdown content. */
 const CITATION_PATTERN = /\^\[([^\]]+)\]/g;
 
-/** Match result with its line number and captured group. */
 interface LineMatch {
   captured: string;
   line: number;
 }
 
-/**
- * Scan all lines of a page's content and return regex matches with line numbers.
- * Shared by rules that need to locate patterns within page bodies.
- */
+interface CitationSourceIndex {
+  fileNames: Set<string>;
+  hashes: Map<string, string[]>;
+}
+
 function findMatchesInContent(content: string, pattern: RegExp): LineMatch[] {
   const results: LineMatch[] = [];
   const lines = content.split("\n");
+  let activeFence: "`" | "~" | null = null;
   for (let i = 0; i < lines.length; i++) {
+    const fenceMarker = readFenceMarker(lines[i]);
+    if (activeFence) {
+      if (fenceMarker === activeFence) {
+        activeFence = null;
+      }
+      continue;
+    }
+    if (fenceMarker) {
+      activeFence = fenceMarker;
+      continue;
+    }
+
     const matches = lines[i].matchAll(pattern);
     for (const match of matches) {
       results.push({ captured: match[1], line: i + 1 });
@@ -45,56 +53,72 @@ function findMatchesInContent(content: string, pattern: RegExp): LineMatch[] {
   return results;
 }
 
-/**
- * Read all .md files from a directory, returning their paths and parsed content.
- * Returns an empty array if the directory does not exist.
- */
-async function readMarkdownFiles(
-  dirPath: string,
-): Promise<Array<{ filePath: string; content: string }>> {
-  if (!existsSync(dirPath)) return [];
-
-  const entries = await readdir(dirPath);
-  const mdFiles = entries.filter((f) => f.endsWith(".md"));
-
-  const results = await Promise.all(
-    mdFiles.map(async (fileName) => {
-      const filePath = path.join(dirPath, fileName);
-      const content = await readFile(filePath, "utf-8");
-      return { filePath, content };
-    }),
-  );
-
-  return results;
-}
-
-/**
- * Collect all wiki pages from both concepts/ and queries/ directories.
- */
-async function collectAllPages(
-  root: string,
-): Promise<Array<{ filePath: string; content: string }>> {
-  const conceptPages = await readMarkdownFiles(path.join(root, CONCEPTS_DIR));
-  const queryPages = await readMarkdownFiles(path.join(root, QUERIES_DIR));
-  return [...conceptPages, ...queryPages];
-}
-
-/**
- * Build a set of slugs for all existing wiki pages.
- * Used to verify that wikilink targets actually exist.
- */
-function buildPageSlugSet(
-  pages: Array<{ filePath: string }>,
-): Set<string> {
-  const slugs = new Set<string>();
-  for (const page of pages) {
-    const baseName = path.basename(page.filePath, ".md");
-    slugs.add(baseName.toLowerCase());
+function readFenceMarker(line: string): "`" | "~" | null {
+  const trimmed = line.trimStart();
+  if (trimmed.startsWith("```")) {
+    return "`";
   }
-  return slugs;
+  if (trimmed.startsWith("~~~")) {
+    return "~";
+  }
+  return null;
 }
 
-/** Find [[Title]] wikilinks that don't match any existing wiki page. */
+function extractTrailingHash(fileName: string): string | null {
+  const match = fileName.match(/(?:__)?([a-f0-9]{8,32})\.md$/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+function expandCitationParts(captured: string): string[] {
+  return captured
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+function buildCitationSourceIndex(root: string): CitationSourceIndex {
+  const fileNames = new Set<string>();
+  const hashes = new Map<string, string[]>();
+
+  for (const dir of [SOURCES_DIR, SOURCES_FULL_DIR]) {
+    const dirPath = path.join(root, dir);
+    if (!existsSync(dirPath)) {
+      continue;
+    }
+
+    for (const fileName of readdirSync(dirPath)) {
+      if (!fileName.endsWith(".md")) {
+        continue;
+      }
+
+      fileNames.add(fileName);
+      const hash = extractTrailingHash(fileName);
+      if (!hash) {
+        continue;
+      }
+
+      const existing = hashes.get(hash) ?? [];
+      existing.push(fileName);
+      hashes.set(hash, existing);
+    }
+  }
+
+  return { fileNames, hashes };
+}
+
+function citationExists(citation: string, index: CitationSourceIndex): boolean {
+  if (index.fileNames.has(citation)) {
+    return true;
+  }
+
+  const citationHash = extractTrailingHash(citation);
+  if (!citationHash) {
+    return false;
+  }
+
+  return (index.hashes.get(citationHash) ?? []).length > 0;
+}
+
 export async function checkBrokenWikilinks(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
   const existingSlugs = buildPageSlugSet(pages);
@@ -102,13 +126,14 @@ export async function checkBrokenWikilinks(root: string): Promise<LintResult[]> 
 
   for (const page of pages) {
     for (const { captured, line } of findMatchesInContent(page.content, WIKILINK_PATTERN)) {
-      const linkSlug = slugify(captured);
+      const target = normalizeWikilinkTarget(captured);
+      const linkSlug = slugify(target);
       if (!existingSlugs.has(linkSlug)) {
         results.push({
           rule: "broken-wikilink",
           severity: "error",
           file: page.filePath,
-          message: `Broken wikilink [[${captured}]] — no matching page found`,
+          message: `Broken wikilink [[${captured}]] - no matching page found`,
           line,
         });
       }
@@ -118,7 +143,24 @@ export async function checkBrokenWikilinks(root: string): Promise<LintResult[]> 
   return results;
 }
 
-/** Find pages with `orphaned: true` in their frontmatter. */
+export async function checkNoOutlinks(root: string): Promise<LintResult[]> {
+  const pages = await collectAllPages(root);
+  const results: LintResult[] = [];
+
+  for (const page of pages) {
+    const outlinks = findMatchesInContent(page.content, WIKILINK_PATTERN);
+    if (outlinks.length > 0) continue;
+    results.push({
+      rule: "no-outlinks",
+      severity: "warning",
+      file: page.filePath,
+      message: "Page has no outbound [[wikilink]] references",
+    });
+  }
+
+  return results;
+}
+
 export async function checkOrphanedPages(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
   const results: LintResult[] = [];
@@ -130,7 +172,7 @@ export async function checkOrphanedPages(root: string): Promise<LintResult[]> {
         rule: "orphaned-page",
         severity: "warning",
         file: page.filePath,
-        message: `Page is marked as orphaned`,
+        message: "Page is marked as orphaned",
       });
     }
   }
@@ -138,7 +180,6 @@ export async function checkOrphanedPages(root: string): Promise<LintResult[]> {
   return results;
 }
 
-/** Find pages with empty or missing `summary` in frontmatter. */
 export async function checkMissingSummaries(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
   const results: LintResult[] = [];
@@ -153,7 +194,7 @@ export async function checkMissingSummaries(root: string): Promise<LintResult[]>
         rule: "missing-summary",
         severity: "warning",
         file: page.filePath,
-        message: `Page has no summary in frontmatter`,
+        message: "Page has no summary in frontmatter",
       });
     }
   }
@@ -161,7 +202,6 @@ export async function checkMissingSummaries(root: string): Promise<LintResult[]>
   return results;
 }
 
-/** Find multiple pages whose titles match case-insensitively. */
 export async function checkDuplicateConcepts(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
   const titleMap = new Map<string, string[]>();
@@ -185,7 +225,7 @@ export async function checkDuplicateConcepts(root: string): Promise<LintResult[]
         rule: "duplicate-concept",
         severity: "error",
         file,
-        message: `Duplicate title "${title}" — also in ${files.filter((f) => f !== file).join(", ")}`,
+        message: `Duplicate title "${title}" - also in ${files.filter((f) => f !== file).join(", ")}`,
       });
     }
   }
@@ -193,7 +233,6 @@ export async function checkDuplicateConcepts(root: string): Promise<LintResult[]
   return results;
 }
 
-/** Find pages with frontmatter but very short or empty body content. */
 export async function checkEmptyPages(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
   const results: LintResult[] = [];
@@ -216,23 +255,23 @@ export async function checkEmptyPages(root: string): Promise<LintResult[]> {
   return results;
 }
 
-/** Find ^[filename.md] citations referencing source files that don't exist. */
 export async function checkBrokenCitations(root: string): Promise<LintResult[]> {
   const pages = await collectAllPages(root);
-  const sourcesDir = path.join(root, SOURCES_DIR);
+  const sourceIndex = buildCitationSourceIndex(root);
   const results: LintResult[] = [];
 
   for (const page of pages) {
     for (const { captured, line } of findMatchesInContent(page.content, CITATION_PATTERN)) {
-      const citedPath = path.join(sourcesDir, captured);
-      if (!existsSync(citedPath)) {
-        results.push({
-          rule: "broken-citation",
-          severity: "error",
-          file: page.filePath,
-          message: `Broken citation ^[${captured}] — source file not found`,
-          line,
-        });
+      for (const citation of expandCitationParts(captured)) {
+        if (!citationExists(citation, sourceIndex)) {
+          results.push({
+            rule: "broken-citation",
+            severity: "error",
+            file: page.filePath,
+            message: `Broken citation ^[${citation}] - source file not found`,
+            line,
+          });
+        }
       }
     }
   }

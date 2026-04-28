@@ -1,12 +1,17 @@
 /**
  * Farzapedia-style wiki reader for the main web UI.
  */
+import { renderAboutMeProfilePage } from "./about-me-profile.js";
+import { renderWikiHomeCoverPage } from "./home-cover.js";
+import { createWikiPageSideImageController } from "./side-image.js";
 import {
   createWikiCommentSurface,
-  locateSelection,
-  type WikiCommentSelection,
   type WikiCommentSurfaceController,
 } from "../../components/wiki-comments.js";
+import {
+  createWikiSelectionToolbar,
+  type WikiSelectionToolbarController,
+} from "../../components/wiki-selection-toolbar.js";
 import {
   applyPanelWidth,
   clampPanelWidth,
@@ -20,7 +25,7 @@ interface WikiPageResponse {
   path: string;
   title: string | null;
   html: string;
-  raw: string;
+  raw?: string;
   frontmatter: Record<string, unknown> | null;
   aliases?: string[];
   sizeBytes?: number;
@@ -32,6 +37,7 @@ interface WikiTreeNode {
   name: string;
   path: string;
   kind: "file" | "dir";
+  modifiedAt?: string;
   children?: WikiTreeNode[];
 }
 
@@ -43,6 +49,7 @@ interface WikiDirectory {
 interface WikiPageLink {
   path: string;
   title: string;
+  modifiedAt?: string;
 }
 
 interface WikiPageCard extends WikiPageLink {
@@ -86,19 +93,8 @@ type DisposableNode = HTMLElement & {
   __dispose?: () => void;
 };
 
-interface WikiSelectionToolbarController {
-  reset(): void;
-  dispose(): void;
-}
-
-interface WikiSelectionToolbarPlacement {
-  left: number;
-  top: number;
-}
-
 const DEFAULT_INDEX_PATH = "wiki/index.md";
-const WIKI_SELECTION_TOOLBAR_GUTTER = 12;
-const WIKI_SELECTION_TOOLBAR_FALLBACK_WIDTH = 160;
+const ABOUT_ME_PATH = "wiki/about-me.md";
 const wikiPageTimers = new WeakMap<HTMLElement, Set<number>>();
 const WIKI_TOC_BOUNDS: PanelWidthBounds = {
   defaultWidth: 320,
@@ -107,6 +103,12 @@ const WIKI_TOC_BOUNDS: PanelWidthBounds = {
 };
 
 export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor = ""): HTMLElement {
+  if (initialPath === DEFAULT_INDEX_PATH) {
+    return renderWikiHomeCoverPage(initialPath);
+  }
+  if (initialPath === ABOUT_ME_PATH) {
+    return renderAboutMeProfilePage(initialPath);
+  }
   const root = document.createElement("section") as DisposableNode;
   wikiPageTimers.set(root, new Set());
   root.dataset.wikiCurrentPath = initialPath;
@@ -114,11 +116,11 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
   root.className = "wiki-page";
   root.innerHTML = `
     <aside class="wiki-page__sidebar">
-      <div class="wiki-page__brand">
+      <a class="wiki-page__brand" data-wiki-brand-link href="${wikiHref(ABOUT_ME_PATH)}">
         <div class="wiki-page__mark">F</div>
         <strong>Farzapedia</strong>
         <span>The Personal Encyclopedia</span>
-      </div>
+      </a>
       <section class="wiki-page__sidebar-section">
         <h2>Navigation</h2>
         <nav class="wiki-page__sidebar-links" data-wiki-navigation>
@@ -237,7 +239,23 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
   const controller = new AbortController();
   const comments = createCommentsSurface(refs);
   const disposeToc = bindWikiToc(root, refs);
-  const selectionToolbar = bindWikiSelectionToolbar(refs, comments);
+  const sideImage = createWikiPageSideImageController({
+    refs: { article: refs.article },
+    onUploaded: async () => {
+      await refreshCurrentWikiPage(root, refs, controller.signal, comments, selectionToolbar, sideImage);
+    },
+  });
+  const selectionToolbar = createWikiSelectionToolbar({
+    article: refs.article,
+    toolbar: refs.selectionToolbar,
+    commentButton: refs.selectionComment,
+    copyButton: refs.selectionCopy,
+    cancelButton: refs.selectionCancel,
+    comments,
+    beforeCreateComment: () => {
+      closeWikiToc(refs);
+    },
+  });
 
   root.__dispose = () => {
     controller.abort();
@@ -300,13 +318,13 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
     event.preventDefault();
     const query = refs.searchInput.value.trim();
     if (!query) {
-      void loadWikiPage(root, refs, controller.signal, comments, selectionToolbar);
-      return;
-    }
-    void runWikiSearch(root, refs, query, controller.signal, comments, selectionToolbar);
+        void loadWikiPage(root, refs, controller.signal, comments, selectionToolbar, sideImage);
+        return;
+      }
+      void runWikiSearch(root, refs, query, controller.signal, comments, selectionToolbar, sideImage);
   });
 
-  void loadWikiPage(root, refs, controller.signal, comments, selectionToolbar, initialAnchor);
+  void loadWikiPage(root, refs, controller.signal, comments, selectionToolbar, sideImage, initialAnchor);
   return root;
 }
 
@@ -317,6 +335,7 @@ async function runWikiSearch(
   signal: AbortSignal,
   comments: WikiCommentSurfaceController,
   selectionToolbar: WikiSelectionToolbarController,
+  sideImage: ReturnType<typeof createWikiPageSideImageController>,
 ): Promise<void> {
   try {
     selectionToolbar.reset();
@@ -334,10 +353,11 @@ async function runWikiSearch(
       throw new Error(payload.error ?? "Search failed");
     }
     if (signal.aborted) return;
-    renderSearchResults(refs, query, payload.data.local.results);
-    renderWikiTableOfContents(root, refs, []);
-    selectionToolbar.reset();
-    comments.clear("搜索结果不支持评论。");
+      renderSearchResults(refs, query, payload.data.local.results);
+      renderWikiTableOfContents(root, refs, []);
+      selectionToolbar.reset();
+      sideImage.setDocument(null);
+      comments.clear("搜索结果不支持评论。");
   } catch {
     if (signal.aborted) return;
     refs.meta.textContent = "Search failed";
@@ -349,6 +369,7 @@ async function runWikiSearch(
     `;
     renderWikiTableOfContents(root, refs, []);
     selectionToolbar.reset();
+    sideImage.setDocument(null);
     comments.clear("搜索结果不支持评论。");
   }
 }
@@ -387,54 +408,38 @@ async function loadWikiPage(
   signal: AbortSignal,
   comments: WikiCommentSurfaceController,
   selectionToolbar: WikiSelectionToolbarController,
+  sideImage: ReturnType<typeof createWikiPageSideImageController>,
   initialAnchor = "",
 ): Promise<void> {
   try {
     const currentPath = root.dataset.wikiCurrentPath ?? DEFAULT_INDEX_PATH;
-    const [treeResponse, pageResponse] = await Promise.all([
-      fetch("/api/tree?layer=wiki", { signal }),
-      fetchPage(currentPath, signal),
-    ]);
-
-    if (signal.aborted) return;
-
-    const tree = treeResponse.ok ? ((await treeResponse.json()) as WikiTreeNode) : null;
-    const page = pageResponse;
-    const treePages = flattenTree(tree);
-    const pageCards = await loadRecentPages(treePages, signal);
+    const treeRequest = fetchWikiTree(signal);
+    const page = await fetchPage(currentPath, signal);
 
     if (signal.aborted) return;
     if (refs.searchInput.value.trim()) return;
 
-    renderPageData(refs, {
-      article: page,
-      navigation: buildNavigation(treePages),
-      categories: buildCategories(tree),
-      recentlyUpdated: pageCards,
-    });
     selectionToolbar.reset();
-    renderWikiTableOfContents(root, refs);
-    scrollToWikiAnchor(root, refs.article, initialAnchor);
     if (page) {
-      await comments.setDocument(page.path, page.html || "", {
-        sourceEditable: page.sourceEditable,
-        onPageConfirmed: (confirmedPage) => {
-          root.dataset.wikiCurrentPath = confirmedPage.path;
-          root.dataset.wikiCurrentAnchor = "";
-          updatePageChrome(refs, confirmedPage);
-          renderWikiTableOfContents(root, refs);
-        },
-      });
+      await applyLoadedWikiArticle(root, refs, page, comments, selectionToolbar, sideImage, initialAnchor);
     } else {
-      selectionToolbar.reset();
+      renderEmptyState(refs);
+      renderWikiTableOfContents(root, refs, []);
+      sideImage.setDocument(null);
       comments.clear("当前页面还没有可评论正文。");
     }
+
+    const tree = await treeRequest;
+    if (signal.aborted) return;
+    if (refs.searchInput.value.trim()) return;
+    renderWikiTreeData(refs, tree);
   } catch {
     if (signal.aborted) return;
     if (refs.searchInput.value.trim()) return;
     renderEmptyState(refs);
     selectionToolbar.reset();
     renderWikiTableOfContents(root, refs, []);
+    sideImage.setDocument(null);
     comments.clear("当前页面还没有可评论正文。");
   }
 }
@@ -531,43 +536,36 @@ function clearWikiPageTimers(root: HTMLElement): void {
 }
 
 async function fetchPage(path: string, signal: AbortSignal): Promise<WikiPageResponse | null> {
-  const response = await fetch(`/api/page?path=${encodeURIComponent(path)}`, { signal });
+  const response = await fetch(`/api/page?path=${encodeURIComponent(path)}&raw=0`, { signal });
   if (!response.ok) {
     return null;
   }
   return (await response.json()) as WikiPageResponse;
 }
 
-async function loadRecentPages(paths: WikiPageLink[], signal: AbortSignal): Promise<WikiPageCard[]> {
-  const candidates = paths.filter((item) => item.path !== DEFAULT_INDEX_PATH).slice(0, 6);
-  const results = await Promise.all(
-    candidates.map(async (item) => {
-      try {
-        const page = await fetchPage(item.path, signal);
-        if (!page?.modifiedAt) return null;
-        return {
-          path: item.path,
-          title: page.title ?? item.title,
-          modifiedAt: page.modifiedAt,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return results.filter((item): item is WikiPageCard => item !== null).sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+async function fetchWikiTree(signal: AbortSignal): Promise<WikiTreeNode | null> {
+  try {
+    const response = await fetch("/api/tree?layer=wiki", { signal });
+    return response.ok ? ((await response.json()) as WikiTreeNode) : null;
+  } catch {
+    if (signal.aborted) {
+      return null;
+    }
+    return null;
+  }
+}
+
+function buildRecentPages(paths: WikiPageLink[]): WikiPageCard[] {
+  return paths
+    .filter((item): item is WikiPageCard => Boolean(item.modifiedAt) && item.path !== DEFAULT_INDEX_PATH)
+    .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
+    .slice(0, 6);
 }
 
 function renderPageData(refs: ReturnType<typeof getRefs>, data: WikiPageData): void {
   const article = data.article;
   if (article) {
-    updatePageChrome(refs, article);
-    refs.article.innerHTML = article.html || `
-      <div class="wiki-page__empty-state">
-        <h2>${escapeHtml(article.title ?? "Wiki")}</h2>
-        <p>This page exists, but it does not contain rendered article content yet.</p>
-      </div>
-    `;
+    renderArticleData(refs, article);
   } else {
     renderEmptyState(refs);
   }
@@ -576,6 +574,73 @@ function renderPageData(refs: ReturnType<typeof getRefs>, data: WikiPageData): v
   refs.sidebarCategories.innerHTML = renderDirectoryList(data.categories, "No categories yet");
   refs.categories.innerHTML = renderDirectoryList(data.categories, "No categories indexed yet");
   refs.recent.innerHTML = renderRecentList(data.recentlyUpdated);
+  refs.about.innerHTML = `
+    <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
+    <p>It opens <code>wiki/index.md</code> by default and keeps the reading surface separate from the chat shell.</p>
+  `;
+}
+
+function renderArticleData(refs: ReturnType<typeof getRefs>, article: WikiPageResponse): void {
+  updatePageChrome(refs, article);
+  refs.article.innerHTML = article.html || `
+    <div class="wiki-page__empty-state">
+      <h2>${escapeHtml(article.title ?? "Wiki")}</h2>
+      <p>This page exists, but it does not contain rendered article content yet.</p>
+    </div>
+    `;
+}
+
+async function applyLoadedWikiArticle(
+  root: DisposableNode,
+  refs: ReturnType<typeof getRefs>,
+  page: WikiPageResponse,
+  comments: WikiCommentSurfaceController,
+  selectionToolbar: WikiSelectionToolbarController,
+  sideImage: ReturnType<typeof createWikiPageSideImageController>,
+  initialAnchor = "",
+): Promise<void> {
+  renderArticleData(refs, page);
+  sideImage.setDocument(page);
+  renderWikiTableOfContents(root, refs);
+  scrollToWikiAnchor(root, refs.article, initialAnchor);
+  await comments.setDocument(page.path, page.html || "", {
+    sourceEditable: page.sourceEditable,
+    loadOnSet: false,
+    contentAlreadyRendered: Boolean(page.html),
+    refreshPage: (confirmedPage) => {
+      root.dataset.wikiCurrentPath = confirmedPage.path;
+      root.dataset.wikiCurrentAnchor = "";
+      updatePageChrome(refs, confirmedPage);
+      sideImage.setDocument(confirmedPage);
+      renderWikiTableOfContents(root, refs);
+      selectionToolbar.reset();
+    },
+  });
+}
+
+async function refreshCurrentWikiPage(
+  root: DisposableNode,
+  refs: ReturnType<typeof getRefs>,
+  signal: AbortSignal,
+  comments: WikiCommentSurfaceController,
+  selectionToolbar: WikiSelectionToolbarController,
+  sideImage: ReturnType<typeof createWikiPageSideImageController>,
+): Promise<void> {
+  const currentPath = root.dataset.wikiCurrentPath ?? DEFAULT_INDEX_PATH;
+  const page = await fetchPage(currentPath, signal);
+  if (!page || signal.aborted) {
+    return;
+  }
+  await applyLoadedWikiArticle(root, refs, page, comments, selectionToolbar, sideImage);
+}
+
+function renderWikiTreeData(refs: ReturnType<typeof getRefs>, tree: WikiTreeNode | null): void {
+  const treePages = flattenTree(tree);
+  const categories = buildCategories(tree);
+  refs.navigation.innerHTML = renderLinks(buildNavigation(treePages));
+  refs.sidebarCategories.innerHTML = renderDirectoryList(categories, "No categories yet");
+  refs.categories.innerHTML = renderDirectoryList(categories, "No categories indexed yet");
+  refs.recent.innerHTML = renderRecentList(buildRecentPages(treePages));
   refs.about.innerHTML = `
     <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
     <p>It opens <code>wiki/index.md</code> by default and keeps the reading surface separate from the chat shell.</p>
@@ -645,169 +710,6 @@ function getRefs(root: HTMLElement) {
     tocResize: root.querySelector<HTMLElement>("[data-wiki-toc-resize]")!,
     tocList: root.querySelector<HTMLElement>("[data-wiki-toc-list]")!,
     tocClose: root.querySelector<HTMLButtonElement>("[data-wiki-toc-close]")!,
-  };
-}
-
-function bindWikiSelectionToolbar(
-  refs: ReturnType<typeof getRefs>,
-  comments: WikiCommentSurfaceController,
-): WikiSelectionToolbarController {
-  let selectionSnapshot: WikiCommentSelection | null = null;
-
-  const reset = (): void => {
-    selectionSnapshot = null;
-    refs.selectionToolbar.style.removeProperty("left");
-    refs.selectionToolbar.style.removeProperty("top");
-    refs.selectionToolbar.style.removeProperty("visibility");
-    refs.selectionToolbar.hidden = true;
-  };
-
-  const dismissToolbar = (clearSelection: boolean): void => {
-    if (clearSelection) {
-      window.getSelection()?.removeAllRanges();
-    }
-    reset();
-  };
-
-  const syncSelectionToolbar = (): void => {
-    const liveState = readSelectionState(refs.article);
-    if (liveState.kind === "inside") {
-      selectionSnapshot = liveState.selection;
-      if (refs.selectionToolbar.hidden) {
-        refs.selectionToolbar.style.visibility = "hidden";
-        refs.selectionToolbar.hidden = false;
-      }
-      refs.selectionToolbar.style.left = `${Math.round(clampSelectionToolbarLeft(liveState.placement.left, refs.selectionToolbar))}px`;
-      refs.selectionToolbar.style.top = `${Math.round(liveState.placement.top)}px`;
-      refs.selectionToolbar.style.removeProperty("visibility");
-      refs.selectionToolbar.hidden = false;
-      return;
-    }
-    if (liveState.kind === "outside") {
-      selectionSnapshot = null;
-    }
-    refs.selectionToolbar.style.removeProperty("left");
-    refs.selectionToolbar.style.removeProperty("top");
-    refs.selectionToolbar.style.removeProperty("visibility");
-    refs.selectionToolbar.hidden = true;
-  };
-
-  const onCreateComment = (): void => {
-    const preservedSelection = selectionSnapshot;
-    dismissToolbar(true);
-    closeWikiToc(refs);
-    void comments.createFromSelection(preservedSelection);
-  };
-
-  const onCopySelection = async (): Promise<void> => {
-    if (!selectionSnapshot) {
-      dismissToolbar(true);
-      return;
-    }
-    await navigator.clipboard?.writeText?.(selectionSnapshot.quote);
-    dismissToolbar(true);
-  };
-
-  const onCancelSelection = (): void => {
-    dismissToolbar(true);
-  };
-
-  const onCopySelectionClick = (): void => {
-    void onCopySelection();
-  };
-
-  document.addEventListener("selectionchange", syncSelectionToolbar);
-  refs.selectionComment.addEventListener("click", onCreateComment);
-  refs.selectionCopy.addEventListener("click", onCopySelectionClick);
-  refs.selectionCancel.addEventListener("click", onCancelSelection);
-  syncSelectionToolbar();
-
-  return {
-    reset,
-    dispose() {
-      document.removeEventListener("selectionchange", syncSelectionToolbar);
-      refs.selectionComment.removeEventListener("click", onCreateComment);
-      refs.selectionCopy.removeEventListener("click", onCopySelectionClick);
-      refs.selectionCancel.removeEventListener("click", onCancelSelection);
-    },
-  };
-}
-
-function readSelectionState(article: HTMLElement):
-  | { kind: "inside"; selection: WikiCommentSelection; placement: WikiSelectionToolbarPlacement }
-  | { kind: "outside" }
-  | { kind: "empty" } {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-    return { kind: "empty" };
-  }
-  const range = selection.getRangeAt(0);
-  if (!article.contains(range.commonAncestorContainer)) {
-    return { kind: "outside" };
-  }
-  const snapshot = locateSelection(article);
-  if (!snapshot) {
-    return { kind: "empty" };
-  }
-  const placement = getSelectionToolbarPlacement(range);
-  if (!placement) {
-    return { kind: "empty" };
-  }
-  return { kind: "inside", selection: snapshot, placement };
-}
-
-function getSelectionToolbarPlacement(range: Range): WikiSelectionToolbarPlacement | null {
-  const rect = readRangeRect(range);
-  if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top)) {
-    return null;
-  }
-  return {
-    left: rect.left + (rect.width / 2),
-    top: Math.max(rect.top - 12, 12),
-  };
-}
-
-function clampSelectionToolbarLeft(anchorLeft: number, toolbar: HTMLElement): number {
-  const halfWidth = readSelectionToolbarWidth(toolbar) / 2;
-  const minLeft = WIKI_SELECTION_TOOLBAR_GUTTER + halfWidth;
-  const maxLeft = Math.max(minLeft, window.innerWidth - WIKI_SELECTION_TOOLBAR_GUTTER - halfWidth);
-  return Math.min(Math.max(anchorLeft, minLeft), maxLeft);
-}
-
-function readSelectionToolbarWidth(toolbar: HTMLElement): number {
-  const rectWidth = toolbar.getBoundingClientRect().width;
-  if (rectWidth > 0) {
-    return rectWidth;
-  }
-  if (toolbar.offsetWidth > 0) {
-    return toolbar.offsetWidth;
-  }
-  return WIKI_SELECTION_TOOLBAR_FALLBACK_WIDTH;
-}
-
-function readRangeRect(range: Range): DOMRect | DOMRectReadOnly {
-  const rangeWithRect = range as Range & { getBoundingClientRect?: () => DOMRect | DOMRectReadOnly };
-  if (typeof rangeWithRect.getBoundingClientRect === "function") {
-    return rangeWithRect.getBoundingClientRect();
-  }
-
-  const fallbackElement = range.startContainer.nodeType === Node.ELEMENT_NODE
-    ? range.startContainer as Element
-    : range.startContainer.parentElement;
-  if (fallbackElement && typeof fallbackElement.getBoundingClientRect === "function") {
-    return fallbackElement.getBoundingClientRect();
-  }
-
-  return {
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    toJSON: () => ({}),
   };
 }
 
@@ -928,7 +830,8 @@ function flattenTree(tree: WikiTreeNode | null): WikiPageLink[] {
     if (node.kind === "file") {
       nodes.push({
         path: node.path,
-        title: pageTitleFromPath(node.path, node.name),
+        title: pageTitleFromPath(node.name, node.name),
+        modifiedAt: node.modifiedAt,
       });
       return;
     }
@@ -956,7 +859,7 @@ function buildCategories(tree: WikiTreeNode | null): WikiDirectory[] {
         .slice(0, 5)
         .map((grandChild) => ({
           path: grandChild.path,
-          title: pageTitleFromPath(grandChild.path, grandChild.name),
+          title: pageTitleFromPath(grandChild.name, grandChild.name),
         })),
     }));
 }

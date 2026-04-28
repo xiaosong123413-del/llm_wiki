@@ -4,7 +4,7 @@
  * and asserts the expected diagnostics.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import path from "path";
 import os from "os";
@@ -25,6 +25,7 @@ beforeEach(async () => {
   await mkdir(path.join(tmpDir, "wiki", "concepts"), { recursive: true });
   await mkdir(path.join(tmpDir, "wiki", "queries"), { recursive: true });
   await mkdir(path.join(tmpDir, "sources"), { recursive: true });
+  await mkdir(path.join(tmpDir, "sources_full"), { recursive: true });
 });
 
 afterEach(async () => {
@@ -44,6 +45,11 @@ async function writeQuery(slug: string, content: string): Promise<void> {
 /** Helper to write a source file. */
 async function writeSource(name: string, content: string): Promise<void> {
   await writeFile(path.join(tmpDir, "sources", name), content);
+}
+
+/** Helper to write a full-source file. */
+async function writeFullSource(name: string, content: string): Promise<void> {
+  await writeFile(path.join(tmpDir, "sources_full", name), content);
 }
 
 describe("checkBrokenWikilinks", () => {
@@ -80,6 +86,66 @@ describe("checkBrokenWikilinks", () => {
     const results = await checkBrokenWikilinks(tmpDir);
     expect(results).toHaveLength(1);
     expect(results[0].line).toBe(6);
+  });
+
+  it("resolves wikilinks by page title even when filename slug differs", async () => {
+    await writeConcept(
+      "three-tier-knowledge-architecture",
+      "---\ntitle: 三层知识架构\n---\n正文内容足够长，避免空页面规则干扰。",
+    );
+    await writeConcept(
+      "consumer",
+      "---\ntitle: Consumer\n---\nSee [[三层知识架构]].",
+    );
+
+    const results = await checkBrokenWikilinks(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("resolves wikilinks by aliases", async () => {
+    await writeConcept(
+      "ai-knowledge-base-construction",
+      "---\ntitle: AI Knowledge Base Construction\naliases:\n  - AI知识库构建\n---\n正文内容足够长，避免空页面规则干扰。",
+    );
+    await writeConcept(
+      "consumer",
+      "---\ntitle: Consumer\n---\nSee [[AI知识库构建]].",
+    );
+
+    const results = await checkBrokenWikilinks(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("resolves wikilinks with display text aliases after a pipe", async () => {
+    await writeConcept(
+      "three-tier-knowledge-architecture",
+      "---\ntitle: 三层知识架构\naliases:\n  - 三层知识架构\n---\n正文内容足够长，避免空页面规则干扰。",
+    );
+    await writeConcept(
+      "consumer",
+      "---\ntitle: Consumer\n---\nSee [[三层知识架构|knowledge structure]].",
+    );
+
+    const results = await checkBrokenWikilinks(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("ignores wikilinks inside fenced code blocks", async () => {
+    await writeConcept(
+      "consumer",
+      [
+        "---",
+        "title: Consumer",
+        "---",
+        "",
+        "```markdown",
+        "[[Missing Page]]",
+        "```",
+      ].join("\n"),
+    );
+
+    const results = await checkBrokenWikilinks(tmpDir);
+    expect(results).toHaveLength(0);
   });
 });
 
@@ -206,12 +272,91 @@ describe("checkBrokenCitations", () => {
     expect(results).toHaveLength(1);
     expect(results[0].line).toBe(5);
   });
+
+  it("accepts citations that exist in sources_full", async () => {
+    await writeFullSource("archived-source.md", "# Archived\nSource content.");
+    await writeConcept("full-cite", "---\ntitle: Full Cite\n---\nBased on ^[archived-source.md] data.");
+
+    const results = await checkBrokenCitations(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("accepts citations that reference only the trailing hash filename", async () => {
+    await writeFullSource(
+      "ai知识库（第二大脑）__概念__AI-Agent规划__1e0b10dd.md",
+      "# Archived\nSource content.",
+    );
+    await writeConcept(
+      "hash-cite",
+      "---\ntitle: Hash Cite\n---\nBased on ^[1e0b10dd.md] data.",
+    );
+
+    const results = await checkBrokenCitations(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("accepts citations whose visible filename differs but hash matches a source file", async () => {
+    await writeFullSource(
+      "ai知识库（第二大脑）__概念__LLM知识库方法论__e653ef16.md",
+      "# Archived\nSource content.",
+    );
+    await writeConcept(
+      "variant-cite",
+      "---\ntitle: Variant Cite\n---\nBased on ^[ai知識庫（第二大脳）__概念__LLM知識庫方法論__e653ef16.md] data.",
+    );
+
+    const results = await checkBrokenCitations(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("validates each file separately inside a multi-source citation", async () => {
+    await writeFullSource(
+      "ai知识库（第二大脑）__概念__AI-Agent规划__1e0b10dd.md",
+      "# Archived\nSource content.",
+    );
+    await writeFullSource(
+      "ai知识库（第二大脑）__概念__CoT__60ca95e7.md",
+      "# Archived\nSource content.",
+    );
+    await writeConcept(
+      "multi-cite",
+      "---\ntitle: Multi Cite\n---\nBased on ^[1e0b10dd.md, 60ca95e7.md] data.",
+    );
+
+    const results = await checkBrokenCitations(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("ignores citations inside fenced code blocks", async () => {
+    await writeConcept(
+      "code-cite",
+      [
+        "---",
+        "title: Code Cite",
+        "---",
+        "",
+        "```markdown",
+        "^[missing.md]",
+        "```",
+      ].join("\n"),
+    );
+
+    const results = await checkBrokenCitations(tmpDir);
+    expect(results).toHaveLength(0);
+  });
 });
 
 describe("lint orchestrator", () => {
   it("returns a summary with zero counts for a clean wiki", async () => {
     const longBody = "This is a sufficiently long body that exceeds the minimum character threshold for content.";
-    await writeConcept("clean", `---\ntitle: Clean Page\nsummary: A clean page.\n---\n${longBody}`);
+    await writeConcept(
+      "linked-page",
+      `---\ntitle: Linked Page\nsummary: A linked page.\n---\n${longBody}\n\nSee [[Clean Page]].`,
+    );
+    await writeConcept(
+      "clean",
+      `---\ntitle: Clean Page\nsummary: A clean page.\n---\n${longBody}\n\nSee [[Linked Page]].`,
+    );
 
     const summary = await lint(tmpDir);
     expect(summary.errors).toBe(0);
@@ -238,5 +383,53 @@ describe("lint orchestrator", () => {
     expect(summary.errors).toBe(0);
     expect(summary.warnings).toBe(0);
     expect(summary.results).toHaveLength(0);
+  });
+});
+
+describe("lint integration contracts", () => {
+  it("uses an autofix prepass before the final full lint pass", async () => {
+    vi.resetModules();
+    const prepassDiagnostic = {
+      rule: "broken-wikilink",
+      severity: "error" as const,
+      file: "prepass.md",
+      message: "Broken wikilink [[Ghost]] - no matching page found",
+    };
+    const finalWarning = {
+      rule: "missing-summary",
+      severity: "warning" as const,
+      file: "final.md",
+      message: "Page has no summary in frontmatter",
+    };
+    const applyDeterministicLintAutofixes = vi.fn(async (_root: string, diagnostics: unknown[]) => {
+      expect(diagnostics).toEqual([prepassDiagnostic]);
+      return { attempted: 1, applied: 1, skipped: 0, failures: 0, details: [] };
+    });
+
+    vi.doMock("../src/linter/autofix.js", () => ({ applyDeterministicLintAutofixes }));
+    vi.doMock("../src/linter/rules.js", () => ({
+      checkBrokenWikilinks: vi.fn(async () => [prepassDiagnostic]),
+      checkNoOutlinks: vi.fn(async () => []),
+      checkOrphanedPages: vi.fn(async () => []),
+      checkMissingSummaries: vi.fn(async () => [finalWarning]),
+      checkDuplicateConcepts: vi.fn(async () => []),
+      checkEmptyPages: vi.fn(async () => []),
+      checkBrokenCitations: vi.fn(async () => []),
+    }));
+    vi.doMock("../src/linter/media-rules.js", () => ({
+      checkUntraceableMediaReferences: vi.fn(async () => []),
+    }));
+    vi.doMock("../src/linter/lifecycle-rules.js", () => ({
+      checkLowConfidenceClaims: vi.fn(async () => []),
+      checkStaleClaims: vi.fn(async () => []),
+    }));
+
+    const { lint: mockedLint } = await import("../src/linter/index.js");
+
+    const summary = await mockedLint(tmpDir);
+    expect(summary.results).toEqual([prepassDiagnostic, finalWarning]);
+    expect(summary.errors).toBe(1);
+    expect(summary.warnings).toBe(1);
+    expect(applyDeterministicLintAutofixes).toHaveBeenCalledTimes(1);
   });
 });

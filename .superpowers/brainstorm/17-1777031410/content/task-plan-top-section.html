@@ -1,0 +1,478 @@
+<h2>任务计划页 - 上半区复刻稿</h2>
+<p class="subtitle">只覆盖内容区域，严格按你给的图做静态复刻。当前页只展示上半区「AI 智能排期助手」。</p>
+
+<style>
+  .task-plan-stage {
+    display: grid;
+    gap: 22px;
+  }
+
+  .task-plan-hero {
+    display: grid;
+    gap: 8px;
+  }
+
+  .task-plan-hero h1 {
+    margin: 0;
+    font-size: 44px;
+    line-height: 1.04;
+    color: #14213d;
+    letter-spacing: -0.04em;
+  }
+
+  .task-plan-hero p {
+    margin: 0;
+    color: #5f6f90;
+    font-size: 16px;
+  }
+
+  .assistant-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 248px;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .assistant-main {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    border: 1px solid #e6edf9;
+    border-radius: 28px;
+    padding: 26px 28px 22px;
+    box-shadow: 0 12px 30px rgba(113, 142, 196, 0.12);
+    display: grid;
+    gap: 20px;
+  }
+
+  .assistant-main h3,
+  .assistant-side h3 {
+    margin: 0;
+    color: #1f2f5f;
+    font-size: 18px;
+  }
+
+  .assistant-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .voice-dot {
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #4d9cff 0%, #246bff 100%);
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 28px;
+    box-shadow: 0 14px 30px rgba(50, 119, 255, 0.32);
+  }
+
+  .btn-pill {
+    min-height: 48px;
+    padding: 0 24px;
+    border-radius: 999px;
+    border: 1px solid #d9e5fb;
+    background: #fff;
+    color: #355aa9;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-pill.primary {
+    background: #edf5ff;
+    color: #2d6df6;
+    border-color: #cfe0ff;
+  }
+
+  .assistant-flow {
+    display: grid;
+    grid-template-columns: 1.02fr 40px 1.02fr 40px 1.02fr 44px 1.12fr;
+    gap: 0;
+    align-items: center;
+  }
+
+  .step-card {
+    min-height: 214px;
+    background: #fff;
+    border: 1px solid #dfebfd;
+    border-radius: 18px;
+    padding: 16px 18px 18px;
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    box-shadow: 0 8px 18px rgba(117, 147, 204, 0.08);
+  }
+
+  .step-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #1f2f5f;
+    font-weight: 800;
+    font-size: 15px;
+  }
+
+  .num-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: #2d6df6;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .step-box {
+    background: #fbfcff;
+    border: 1px solid #ebf1fd;
+    border-radius: 14px;
+    padding: 14px 14px 16px;
+    color: #4f5f80;
+    line-height: 1.7;
+    min-height: 86px;
+  }
+
+  .chip-col {
+    display: grid;
+    gap: 10px;
+    color: #5670a8;
+    font-size: 14px;
+  }
+
+  .mini-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #edf4ff;
+    color: #4676d9;
+    font-weight: 700;
+  }
+
+  .task-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #556684;
+    display: grid;
+    gap: 8px;
+  }
+
+  .task-count {
+    color: #4d7de3;
+    font-weight: 700;
+  }
+
+  .judge-card {
+    min-height: 146px;
+    border-radius: 22px;
+    border: 2px solid #cfe0ff;
+    background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: #1f3970;
+    font-weight: 800;
+    line-height: 1.7;
+    box-shadow: 0 10px 24px rgba(130, 163, 224, 0.12);
+  }
+
+  .spark {
+    font-size: 28px;
+    color: #3072ff;
+  }
+
+  .arrow {
+    display: grid;
+    place-items: center;
+    color: #9db9f7;
+    font-size: 38px;
+    font-weight: 800;
+  }
+
+  .schedule-card {
+    border: 1px solid #dfebfd;
+    border-radius: 20px;
+    padding: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: 0 10px 22px rgba(113, 142, 196, 0.1);
+    display: grid;
+    gap: 14px;
+  }
+
+  .schedule-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #23386c;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .schedule-title::before,
+  .schedule-title::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: #e6eefc;
+  }
+
+  .timeline {
+    position: relative;
+    display: grid;
+    gap: 10px;
+    padding-left: 30px;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: linear-gradient(180deg, #2d6df6 0%, #bed4ff 100%);
+  }
+
+  .timeline-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+
+  .timeline-row::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #2d6df6;
+    box-shadow: 0 0 0 3px #eff5ff;
+  }
+
+  .time-label {
+    color: #2d6df6;
+    font-weight: 800;
+    font-size: 15px;
+  }
+
+  .timeline-pill {
+    min-height: 46px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e9effb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 14px 0 16px;
+    color: #42516f;
+    font-weight: 700;
+  }
+
+  .priority {
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .priority.high { background: #ffe8e5; color: #ef6d58; }
+  .priority.mid { background: #fff0d8; color: #e09a20; }
+  .priority.lowmid { background: #e8efff; color: #4b78dc; }
+  .priority.low { background: #e6f7ea; color: #42a463; }
+
+  .fine-btn {
+    min-height: 44px;
+    border-radius: 14px;
+    border: 1px solid #c9dbff;
+    background: #edf5ff;
+    color: #2f6df6;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+  }
+
+  .schedule-note {
+    color: #7a88a6;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .assistant-side {
+    border: 1px solid #e6edf9;
+    border-radius: 20px;
+    padding: 18px 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: 0 10px 24px rgba(113, 142, 196, 0.08);
+    display: grid;
+    gap: 14px;
+  }
+
+  .steps {
+    display: grid;
+    gap: 12px;
+  }
+
+  .step-line {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    color: #536784;
+    font-weight: 700;
+  }
+
+  .step-line .circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 2px solid #9ec0ff;
+    color: #2d6df6;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  @media (max-width: 1200px) {
+    .assistant-shell {
+      grid-template-columns: 1fr;
+    }
+    .assistant-flow {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .arrow {
+      transform: rotate(90deg);
+      font-size: 28px;
+    }
+  }
+</style>
+
+<div class="task-plan-stage">
+  <section class="task-plan-hero">
+    <h1>任务计划页</h1>
+    <p>每天早上通过语音快速生成今日计划，再进行微调</p>
+  </section>
+
+  <section class="assistant-shell">
+    <div class="assistant-main">
+      <h3>AI 智能排期助手</h3>
+
+      <div class="assistant-actions">
+        <div class="voice-dot">🎤</div>
+        <button class="btn-pill primary">开始语音输入</button>
+        <button class="btn-pill">重新生成计划</button>
+      </div>
+
+      <div class="assistant-flow">
+        <article class="step-card">
+          <div class="step-head">
+            <span><span class="num-badge">1</span> 语音输入</span>
+            <span>〰</span>
+          </div>
+          <div class="step-box">“今天想先完成需求文档，再和开发确认拖拽逻辑，下午整理用户反馈，晚上复盘。”</div>
+          <div class="chip-col">
+            <span>识别成功 ✅</span>
+          </div>
+        </article>
+
+        <div class="arrow">→</div>
+
+        <article class="step-card">
+          <div class="step-head">
+            <span><span class="num-badge">2</span> 最近的日记</span>
+            <span>◫</span>
+          </div>
+          <div class="chip-col">
+            <span>最近状态：<span class="mini-chip">精力一般</span></span>
+            <span>本周重点：<span class="mini-chip">飞书记录系统</span></span>
+            <span>持续关注：<span class="mini-chip">用户研究</span></span>
+          </div>
+        </article>
+
+        <div class="arrow">→</div>
+
+        <article class="step-card">
+          <div class="step-head">
+            <span><span class="num-badge">3</span> 已有任务池</span>
+            <span>☰</span>
+          </div>
+          <ul class="task-list">
+            <li>完成需求文档终稿</li>
+            <li>与开发确认拖拽逻辑</li>
+            <li>整理用户反馈并归类</li>
+            <li>复盘今日完成情况</li>
+          </ul>
+          <div class="task-count">共 12 项任务</div>
+        </article>
+
+        <div class="arrow">→</div>
+
+        <article class="judge-card">
+          <div class="spark">✦ ✦</div>
+          <div>AI 优先级判断<br/>+ 时间排序</div>
+        </article>
+
+        <div class="arrow">→</div>
+
+        <article class="schedule-card">
+          <div class="schedule-title">今日建议时间表</div>
+          <div class="timeline">
+            <div class="timeline-row">
+              <div class="time-label">09:00</div>
+              <div class="timeline-pill"><span>完成需求文档终稿</span><span class="priority high">高</span></div>
+            </div>
+            <div class="timeline-row">
+              <div class="time-label">10:30</div>
+              <div class="timeline-pill"><span>与开发确认拖拽逻辑</span><span class="priority high">高</span></div>
+            </div>
+            <div class="timeline-row">
+              <div class="time-label">14:00</div>
+              <div class="timeline-pill"><span>整理用户反馈并归类</span><span class="priority mid">中</span></div>
+            </div>
+            <div class="timeline-row">
+              <div class="time-label">16:00</div>
+              <div class="timeline-pill"><span>跟进项目沟通</span><span class="priority lowmid">中</span></div>
+            </div>
+            <div class="timeline-row">
+              <div class="time-label">19:30</div>
+              <div class="timeline-pill"><span>复盘今日完成情况</span><span class="priority low">低</span></div>
+            </div>
+          </div>
+          <div class="fine-btn">进入微调</div>
+          <div class="schedule-note">系统已结合语音输入、最近日记与任务池自动完成优先级排序，你可以继续手动微调。</div>
+        </article>
+      </div>
+    </div>
+
+    <aside class="assistant-side">
+      <h3>晨间流程建议</h3>
+      <div class="steps">
+        <div class="step-line"><span class="circle">1</span><span>语音倾倒想法</span></div>
+        <div class="step-line"><span class="circle">2</span><span>AI 自动排期</span></div>
+        <div class="step-line"><span class="circle">3</span><span>手动微调</span></div>
+        <div class="step-line"><span class="circle">4</span><span>开始执行</span></div>
+      </div>
+    </aside>
+  </section>
+</div>

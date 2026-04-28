@@ -18,10 +18,15 @@ import type { LLMTool } from "../utils/provider.js";
 import { atomicWrite, safeReadFile, slugify, buildFrontmatter, parseFrontmatter } from "../utils/markdown.js";
 import { generateIndex } from "../compiler/indexgen.js";
 import * as output from "../utils/output.js";
+import { appendMaintenanceLog } from "../utils/maintenance-log.js";
 import { QUERY_PAGE_LIMIT, INDEX_FILE, CONCEPTS_DIR, QUERIES_DIR } from "../utils/constants.js";
 
 /** Directories to search when loading selected pages, in priority order. */
 const PAGE_DIRS = [CONCEPTS_DIR, QUERIES_DIR];
+export const QUERY_RESULT_OUTPUT_MODE = "gui-block";
+export const QUERY_RESULT_START_MARKER = "<<<LLMWIKI_QUERY_RESULT_START>>>";
+export const QUERY_RESULT_END_MARKER = "<<<LLMWIKI_QUERY_RESULT_END>>>";
+type QueryOutputMode = "stream" | typeof QUERY_RESULT_OUTPUT_MODE;
 
 /** Tool schema for page selection (provider-agnostic). */
 const PAGE_SELECTION_TOOL: LLMTool = {
@@ -50,6 +55,18 @@ const PAGE_SELECTION_TOOL: LLMTool = {
 interface PageSelectionResult {
   pages: string[];
   reasoning: string;
+}
+
+export function getQueryOutputMode(
+  env: Partial<Record<string, string | undefined>> = process.env,
+): QueryOutputMode {
+  return env.LLMWIKI_QUERY_OUTPUT_MODE === QUERY_RESULT_OUTPUT_MODE
+    ? QUERY_RESULT_OUTPUT_MODE
+    : "stream";
+}
+
+export function formatGuiQueryResultBlock(answer: string): string {
+  return `${QUERY_RESULT_START_MARKER}\n${answer.trimEnd()}\n${QUERY_RESULT_END_MARKER}`;
 }
 
 /**
@@ -122,13 +139,24 @@ export async function loadSelectedPages(root: string, slugs: string[]): Promise<
  * @param pagesContent - Combined content of the selected wiki pages.
  * @returns The full answer text after streaming completes.
  */
-async function streamAnswer(question: string, pagesContent: string): Promise<string> {
+async function generateAnswer(
+  question: string,
+  pagesContent: string,
+  outputMode: QueryOutputMode,
+): Promise<string> {
   const systemPrompt =
     "You are a knowledge assistant. Answer the question using ONLY the wiki content provided. " +
     "Cite specific pages using [[Page Title]] wikilinks. " +
     "If the wiki doesn't contain enough information, say so.";
 
   const userMessage = `Question: ${question}\n\nRelevant wiki pages:\n${pagesContent}`;
+
+  if (outputMode === QUERY_RESULT_OUTPUT_MODE) {
+    return callClaude({
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
+  }
 
   const answer = await callClaude({
     system: systemPrompt,
@@ -219,16 +247,45 @@ export default async function queryCommand(
 
   if (!pagesContent) {
     output.status("!", output.error("No matching pages found. Try refining your question."));
+    await appendMaintenanceLog(root, {
+      action: "query",
+      title: question,
+      details: {
+        status: "no_matching_pages",
+        selectedPages: rawPages,
+      },
+    });
     return;
   }
 
-  const answer = await streamAnswer(question, pagesContent);
+  const outputMode = getQueryOutputMode();
+  const answer = await generateAnswer(question, pagesContent, outputMode);
+  if (outputMode === QUERY_RESULT_OUTPUT_MODE) {
+    console.log(formatGuiQueryResultBlock(answer));
+  }
 
   // Optional: save the answer as a query page
   if (options.save) {
     await saveQueryPage(root, question, answer);
+    await appendMaintenanceLog(root, {
+      action: "query",
+      title: question,
+      details: {
+        status: "saved",
+        selectedPages: rawPages,
+        saved: path.join(QUERIES_DIR, `${slugify(question)}.md`),
+      },
+    });
     output.status("→", output.dim("Saved. Future queries will use this answer as context."));
   } else {
+    await appendMaintenanceLog(root, {
+      action: "query",
+      title: question,
+      details: {
+        status: "answered",
+        selectedPages: rawPages,
+      },
+    });
     output.status("→", output.dim("Tip: use --save to add this answer to your wiki"));
   }
 }

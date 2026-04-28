@@ -77,4 +77,31 @@ describe("handlePage render cache", () => {
       sourceEditable: false,
     }));
   });
+
+  it("omits raw markdown when the page route is requested in lightweight mode", () => {
+    const sourceVaultRoot = fs.mkdtempSync(path.join(os.tmpdir(), "llmwiki-page-light-source-"));
+    const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "llmwiki-page-light-runtime-"));
+    tempDirs.push(sourceVaultRoot, runtimeRoot);
+
+    fs.mkdirSync(path.join(runtimeRoot, "wiki"), { recursive: true });
+    fs.writeFileSync(path.join(runtimeRoot, "wiki", "index.md"), "# Index\n\nRuntime page.\n", "utf8");
+
+    const handler = handlePage({
+      projectRoot: runtimeRoot,
+      sourceVaultRoot,
+      runtimeRoot,
+      host: "127.0.0.1",
+      port: 4175,
+      author: "me",
+    });
+    const json = vi.fn();
+
+    handler({ query: { path: "wiki/index.md", raw: "0" } } as never, { json, status: vi.fn() } as never);
+
+    expect(json).toHaveBeenCalledWith(expect.not.objectContaining({ raw: expect.any(String) }));
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({
+      path: "wiki/index.md",
+      html: expect.stringContaining("Runtime page."),
+    }));
+  });
 });

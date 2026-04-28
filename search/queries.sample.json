@@ -1,0 +1,159 @@
+{
+  "documents": [
+    {
+      "id": "wiki-concepts-redis",
+      "title": "Redis 缓存",
+      "path": "wiki/concepts/redis.md",
+      "layer": "wiki",
+      "excerpt": "Redis is used for caching and fast lookup.",
+      "tags": ["cache", "redis"],
+      "modifiedAt": "2026-04-01"
+    },
+    {
+      "id": "wiki-concepts-vector-search",
+      "title": "Vector Search",
+      "path": "wiki/concepts/vector-search.md",
+      "layer": "wiki",
+      "excerpt": "Vector search complements keyword and hybrid retrieval.",
+      "tags": ["search", "embedding", "hybrid"],
+      "modifiedAt": "2026-04-01"
+    },
+    {
+      "id": "wiki-procedures-cache-warmup",
+      "title": "Cache Warmup Procedure",
+      "path": "wiki/procedures/cache-warmup.md",
+      "layer": "wiki",
+      "excerpt": "Warm cache before the first query lands.",
+      "tags": ["cache", "procedure"],
+      "modifiedAt": "2026-04-02"
+    },
+    {
+      "id": "wiki-procedures-cache-recovery",
+      "title": "Cache Recovery Workflow",
+      "path": "wiki/procedures/cache-recovery.md",
+      "layer": "wiki",
+      "excerpt": "Recover cache after an outage or warmup miss.",
+      "tags": ["cache", "workflow", "incident"],
+      "modifiedAt": "2026-04-03"
+    },
+    {
+      "id": "wiki-episodes-cache-warmup-retro",
+      "title": "Cache Warmup Retro",
+      "path": "wiki/episodes/2026-04-02-cache-warmup-retro.md",
+      "layer": "wiki",
+      "excerpt": "A dated episode about the cache warmup rollout.",
+      "tags": ["retro", "cache", "temporal"],
+      "modifiedAt": "2026-04-02"
+    },
+    {
+      "id": "wiki-episodes-redis-outage-brief",
+      "title": "Redis Outage Brief",
+      "path": "wiki/episodes/2026-04-03-redis-outage.md",
+      "layer": "wiki",
+      "excerpt": "A short postmortem for the Redis outage.",
+      "tags": ["incident", "redis", "temporal"],
+      "modifiedAt": "2026-04-03"
+    },
+    {
+      "id": "sources-full-clip-redis",
+      "title": "Redis note from source",
+      "path": "sources_full/notes/redis-note.md",
+      "layer": "source",
+      "excerpt": "A clipped note about Redis caching patterns.",
+      "tags": ["redis", "clip"],
+      "modifiedAt": "2026-04-03"
+    },
+    {
+      "id": "sources-full-cache-runbook",
+      "title": "Cache Runbook Source",
+      "path": "sources_full/notes/cache-runbook.md",
+      "layer": "source",
+      "excerpt": "A source note that captures the recovery runbook.",
+      "tags": ["cache", "workflow", "source"],
+      "modifiedAt": "2026-04-04"
+    },
+    {
+      "id": "wiki-concepts-incident-playbook",
+      "title": "Incident Playbook",
+      "path": "wiki/concepts/incident-playbook.md",
+      "layer": "wiki",
+      "excerpt": "The incident playbook explains how to classify outages and recover services.",
+      "tags": ["incident", "playbook", "recovery"],
+      "modifiedAt": "2026-04-05"
+    },
+    {
+      "id": "wiki-procedures-incident-triage",
+      "title": "Incident Triage Procedure",
+      "path": "wiki/procedures/incident-triage.md",
+      "layer": "wiki",
+      "excerpt": "Use this playbook to triage incidents and route follow-up actions.",
+      "tags": ["incident", "procedure", "triage"],
+      "modifiedAt": "2026-04-05"
+    },
+    {
+      "id": "sources-full-incident-playbook-source",
+      "title": "Incident Playbook Source",
+      "path": "sources_full/notes/incident-playbook-source.md",
+      "layer": "source",
+      "excerpt": "A clipped source about incident recovery playbooks and triage steps.",
+      "tags": ["incident", "playbook", "source"],
+      "modifiedAt": "2026-04-05"
+    },
+    {
+      "id": "raw-clip-irrelevant",
+      "title": "Irrelevant clip",
+      "path": "raw/剪藏/irrelevant.md",
+      "layer": "raw",
+      "excerpt": "Apples and oranges.",
+      "tags": ["misc"],
+      "modifiedAt": "2026-04-04"
+    }
+  ],
+  "queries": [
+    {
+      "id": "q1",
+      "query": "wiki/procedures/cache-warmup.md",
+      "mode": "direct"
+    },
+    {
+      "id": "q2",
+      "query": "redis caching",
+      "mode": "keyword"
+    },
+    {
+      "id": "q3",
+      "query": "cache warmup procedure",
+      "mode": "hybrid"
+    },
+    {
+      "id": "q4",
+      "query": "2026-04-02 cache warmup retro",
+      "mode": "temporal"
+    },
+    {
+      "id": "q5",
+      "query": "Redis",
+      "mode": "entity"
+    },
+    {
+      "id": "q6",
+      "query": "cache recovery workflow",
+      "mode": "workflow"
+    },
+    {
+      "id": "q7",
+      "query": "incident playbook",
+      "mode": "keyword"
+    },
+    {
+      "id": "q8",
+      "query": "incident triage procedure",
+      "mode": "workflow"
+    },
+    {
+      "id": "q9",
+      "query": "redis incident recovery",
+      "mode": "hybrid"
+    }
+  ]
+}

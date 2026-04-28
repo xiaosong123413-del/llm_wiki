@@ -7,7 +7,7 @@ import { type ServerConfig } from "../config.js";
 import { resolveAgentRuntimeProvider } from "./llm-chat.js";
 import { findWikiCommentById, updateWikiComment } from "./wiki-comments.js";
 
-export interface WikiCommentAiDraftRecord {
+interface WikiCommentAiDraftRecord {
   id: string;
   commentId: string;
   pagePath: string;
@@ -25,7 +25,7 @@ interface WikiCommentAiDraftStore {
   draftsByCommentId: Record<string, WikiCommentAiDraftRecord>;
 }
 
-export interface GenerateWikiCommentAiDraftInput {
+interface GenerateWikiCommentAiDraftInput {
   projectRoot: string;
   sourceVaultRoot: string;
   runtimeRoot: string;
@@ -33,7 +33,7 @@ export interface GenerateWikiCommentAiDraftInput {
   provider?: LLMProvider;
 }
 
-export interface ConfirmWikiCommentAiDraftInput {
+interface ConfirmWikiCommentAiDraftInput {
   projectRoot: string;
   sourceVaultRoot: string;
   runtimeRoot: string;
@@ -41,7 +41,7 @@ export interface ConfirmWikiCommentAiDraftInput {
   draftId: string;
 }
 
-export interface ConfirmWikiCommentAiDraftResult {
+interface ConfirmWikiCommentAiDraftResult {
   id: string;
   pagePath: string;
 }

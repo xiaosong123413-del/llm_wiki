@@ -4,10 +4,12 @@ import { promisify } from "util";
 import path from "path";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
+import { fileURLToPath } from "url";
 
 const exec = promisify(execFile);
-const CLI = path.resolve("dist/cli.js");
-const TSUP_CLI = path.resolve("node_modules/tsup/dist/cli-default.js");
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const CLI = path.join(REPO_ROOT, "dist", "cli.js");
+const TSUP_CLI = path.join(REPO_ROOT, "node_modules", "tsup", "dist", "cli-default.js");
 
 async function cleanupDirectory(directory: string): Promise<void> {
   await rm(directory, { recursive: true, force: true });
@@ -50,7 +52,7 @@ async function createCompileWorkspace(
 
 describe("CLI smoke tests", () => {
   beforeAll(async () => {
-    await exec(process.execPath, [TSUP_CLI], { cwd: path.resolve(".") });
+    await exec(process.execPath, [TSUP_CLI], { cwd: REPO_ROOT });
   }, 30_000);
   it("prints help and exits 0", async () => {
     const { stdout } = await exec("node", [CLI, "--help"]);
@@ -113,6 +115,17 @@ describe("CLI smoke tests", () => {
     }
   }, 30_000);
 
+  it("compile without sources works with the Cloudflare provider", async () => {
+    const stdout = await runCompileWithoutSources("compile-cloudflare", {
+      LLMWIKI_PROVIDER: "cloudflare",
+      OPENAI_API_KEY: "",
+      CLOUDFLARE_WORKER_URL: "https://example.workers.dev",
+      CLOUDFLARE_REMOTE_TOKEN: "remote-token",
+    });
+    expect(stdout).not.toContain("Unknown provider");
+    expect(stdout).not.toContain("OPENAI_API_KEY");
+  }, 30_000);
+
   it("compile reports malformed Claude settings with formatted CLI error", async () => {
     const workspace = await createCompileWorkspace(
       "compile-malformed-claude-settings",
@@ -143,7 +156,7 @@ describe("CLI smoke tests", () => {
   it("ingest shows next-step hint", async () => {
     const cwd = path.join(tmpdir(), `llmwiki-test-ingest-${Date.now()}`);
     await mkdir(cwd, { recursive: true });
-    const fixture = path.resolve("test/fixtures/sample-source.md");
+    const fixture = path.join(REPO_ROOT, "test", "fixtures", "sample-source.md");
     try {
       const { stdout } = await exec("node", [CLI, "ingest", fixture], { cwd });
       expect(stdout).toContain("Next: llmwiki compile");

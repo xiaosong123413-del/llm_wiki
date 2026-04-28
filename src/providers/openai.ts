@@ -27,7 +27,7 @@ export class OpenAIProvider implements LLMProvider {
   protected readonly client: OpenAI;
   protected readonly model: string;
 
-  constructor(model: string, baseURL?: string, apiKey?: string) {
+  constructor(model: string, baseURL?: string, apiKey?: string, defaultHeaders?: Record<string, string>) {
     this.model = model;
     // The OpenAI SDK validates OPENAI_API_KEY at construction time.
     // Pass the key explicitly so the provider controls when validation happens.
@@ -35,6 +35,7 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({
       apiKey: resolvedKey,
       ...(baseURL ? { baseURL } : {}),
+      ...(defaultHeaders ? { defaultHeaders } : {}),
     });
   }
 

@@ -1,0 +1,221 @@
+/* Button / input / chip / badge - minimal Phase 1 set */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn-large {
+  min-height: 48px;
+  min-width: 220px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.btn-inline {
+  padding: 8px 12px;
+}
+
+.input {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  outline: none;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--text);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.input:focus {
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+.chip,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.markdown-rendered {
+  color: var(--text);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.markdown-rendered > :first-child {
+  margin-top: 0;
+}
+
+.markdown-rendered > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-rendered h1,
+.markdown-rendered h2,
+.markdown-rendered h3,
+.markdown-rendered h4,
+.markdown-rendered h5,
+.markdown-rendered h6 {
+  margin: 1.2em 0 0.6em;
+  line-height: 1.25;
+}
+
+.markdown-rendered p,
+.markdown-rendered ul,
+.markdown-rendered ol,
+.markdown-rendered blockquote,
+.markdown-rendered pre,
+.markdown-rendered table {
+  margin: 0 0 1em;
+}
+
+.markdown-rendered a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.markdown-rendered a:hover {
+  text-decoration: underline;
+}
+
+.markdown-rendered pre {
+  overflow-x: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+}
+
+.markdown-rendered code {
+  padding: 0.12em 0.35em;
+  border-radius: 6px;
+  background: var(--bg-muted);
+  font-size: 0.95em;
+}
+
+.markdown-rendered pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-rendered table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown-rendered th,
+.markdown-rendered td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-rendered th {
+  background: var(--bg-muted);
+  font-weight: 600;
+}
+
+.markdown-rendered blockquote {
+  padding: 0 0 0 14px;
+  border-left: 3px solid var(--primary-soft);
+  color: var(--text-secondary);
+}
+
+.markdown-rendered img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+.flash-diary-page__mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.flash-diary-page__mode-switch .btn.is-active {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border-color: var(--primary);
+}
+
+.flash-diary-page__preview {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+}
+
+.flash-diary-page__editor {
+  min-height: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  resize: none;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  color: var(--text);
+  line-height: 1.7;
+}

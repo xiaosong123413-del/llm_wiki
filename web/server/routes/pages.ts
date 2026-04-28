@@ -1,3 +1,11 @@
+/**
+ * Page, raw markdown, and workspace-document routes for the WebUI.
+ *
+ * This module also decorates rendered wiki pages with chat evidence links and
+ * updates claim retention metadata when concept/procedure/episode pages are
+ * viewed.
+ */
+
 import fs from "node:fs";
 import path from "node:path";
 import type { Request, Response } from "express";
@@ -74,7 +82,11 @@ interface ChatMessageEntry {
 const PAGE_RENDER_CACHE_LIMIT = 24;
 const pageRenderCache = new Map<string, CachedPagePayload>();
 
-export interface PagePayload {
+export function clearPageRenderCacheForPath(fullPath: string): void {
+  pageRenderCache.delete(fullPath);
+}
+
+interface PagePayload {
   path: string;
   title: string | null;
   frontmatter: Record<string, unknown> | null;
@@ -85,6 +97,10 @@ export interface PagePayload {
   aliases: string[];
   sourceEditable: boolean;
 }
+
+type PageResponsePayload = Omit<PagePayload, "raw"> & {
+  raw?: string;
+};
 
 export function handlePage(cfg: ServerConfig) {
   const renderer = createRenderer({
@@ -116,9 +132,31 @@ export function handlePage(cfg: ServerConfig) {
       return;
     }
     const logicalPath = payload.path;
-    touchClaimsForPage(cfg.runtimeRoot, logicalPath);
-    res.json(payload);
+    res.json(toPageResponsePayload(payload, shouldIncludeRaw(req)));
+    scheduleClaimTouch(cfg.runtimeRoot, logicalPath);
   };
+}
+
+function shouldIncludeRaw(req: Request): boolean {
+  const raw = req.query.raw;
+  return raw !== "0" && raw !== "false";
+}
+
+function toPageResponsePayload(payload: PagePayload, includeRaw: boolean): PageResponsePayload {
+  if (includeRaw) {
+    return payload;
+  }
+  const { raw: _raw, ...withoutRaw } = payload;
+  return withoutRaw;
+}
+
+function scheduleClaimTouch(wikiRoot: string, relPath: string): void {
+  const timeout = setTimeout(() => {
+    touchClaimsForPage(wikiRoot, relPath);
+  }, 0);
+  if (typeof timeout === "object" && "unref" in timeout) {
+    timeout.unref();
+  }
 }
 
 export function readPagePayload(
@@ -270,36 +308,16 @@ function readChatMessageEntries(chatFullPath: string): ChatMessageEntry[] {
   const chatRawMarkdown = fs.readFileSync(chatFullPath, "utf-8");
   const entries: ChatMessageEntry[] = [];
   const occurrences = new Map<string, number>();
-  for (const match of chatRawMarkdown.matchAll(CHAT_MESSAGE_MARKDOWN_RE)) {
-    const timestamp = match[1]?.trim() ?? "";
-    if (!timestamp) {
-      continue;
-    }
-    const occurrence = (occurrences.get(timestamp) ?? 0) + 1;
-    occurrences.set(timestamp, occurrence);
-    entries.push({
-      timestamp,
-      speaker: (match[2] ?? "").trim(),
-      text: (match[3] ?? "").trim(),
-      occurrence,
-      anchor: buildChatMessageAnchor(timestamp, occurrence),
-    });
-  }
-  for (const match of chatRawMarkdown.matchAll(CHAT_MESSAGE_MARKDOWN_BRACKET_RE)) {
-    const timestamp = match[1]?.trim() ?? "";
-    if (!timestamp) {
-      continue;
-    }
-    const occurrence = (occurrences.get(timestamp) ?? 0) + 1;
-    occurrences.set(timestamp, occurrence);
-    entries.push({
-      timestamp,
-      speaker: ((match[2] ?? match[3]) ?? "").trim(),
-      text: (match[4] ?? "").trim(),
-      occurrence,
-      anchor: buildChatMessageAnchor(timestamp, occurrence),
-    });
-  }
+  appendChatMessageEntries(entries, occurrences, chatRawMarkdown.matchAll(CHAT_MESSAGE_MARKDOWN_RE), (match) => ({
+    timestamp: match[1] ?? "",
+    speaker: match[2] ?? "",
+    text: match[3] ?? "",
+  }));
+  appendChatMessageEntries(entries, occurrences, chatRawMarkdown.matchAll(CHAT_MESSAGE_MARKDOWN_BRACKET_RE), (match) => ({
+    timestamp: match[1] ?? "",
+    speaker: (match[2] ?? match[3]) ?? "",
+    text: match[4] ?? "",
+  }));
   entries.sort((a, b) => {
     const cmp = a.timestamp.localeCompare(b.timestamp);
     return cmp !== 0 ? cmp : a.occurrence - b.occurrence;
@@ -311,22 +329,8 @@ function collectEvidenceAnchors(rawMarkdown: string, chatEntries: readonly ChatM
   const anchors: string[] = [];
   const lines = rawMarkdown.split(/\r?\n/);
   for (const line of lines) {
-    const matches = Array.from(line.matchAll(EVIDENCE_LINE_TIMESTAMP_RE));
-    if (matches.length === 0) {
-      continue;
-    }
-    for (let index = 0; index < matches.length; index += 1) {
-      const match = matches[index];
-      const timestamp = match[1]?.trim() ?? "";
-      if (!timestamp) {
-        continue;
-      }
-      const start = (match.index ?? 0) + match[0].length;
-      const end = index + 1 < matches.length
-        ? matches[index + 1]?.index ?? line.length
-        : line.length;
-      const snippet = line.slice(start, end).trim();
-      anchors.push(resolveEvidenceAnchor(chatEntries, timestamp, snippet));
+    for (const match of collectEvidenceTimestampMatches(line)) {
+      anchors.push(resolveEvidenceAnchor(chatEntries, match.timestamp, match.snippet));
     }
   }
   return anchors;
@@ -432,39 +436,16 @@ function touchClaimsForPage(wikiRoot: string, relPath: string): void {
 }
 
 function resolveTouchedClaimIds(wikiRoot: string, relPath: string): Set<string> {
-  const claimIds = new Set<string>();
-
-  if (relPath.startsWith("wiki/concepts/")) {
-    const slug = relPath.replace(/^wiki\/concepts\//, "").replace(/\.md$/i, "");
-    const claims = readJsonFile<ClaimRecord[]>(path.join(wikiRoot, ".llmwiki", "claims.json"), []);
-    for (const claim of claims) {
-      if (claim.conceptSlug === slug) {
-        claimIds.add(claim.id);
-      }
-    }
-    return claimIds;
+  if (isConceptPagePath(relPath)) {
+    return readConceptClaimIds(wikiRoot, relPath);
   }
-
-  if (relPath.startsWith("wiki/procedures/")) {
-    const procedureId = relPath.replace(/^wiki\/procedures\//, "").replace(/\.md$/i, "");
-    const procedures = readJsonFile<ProcedureRecord[]>(path.join(wikiRoot, ".llmwiki", "procedures.json"), []);
-    const procedure = procedures.find((item) => item.id === procedureId);
-    for (const claimId of procedure?.supportingClaimIds ?? []) {
-      claimIds.add(claimId);
-    }
-    return claimIds;
+  if (isProcedurePagePath(relPath)) {
+    return readProcedureClaimIds(wikiRoot, relPath);
   }
-
-  if (relPath.startsWith("wiki/episodes/")) {
-    const episodeSlug = relPath.replace(/^wiki\/episodes\//, "").replace(/\.md$/i, "");
-    const episodes = readJsonFile<EpisodeRecord[]>(path.join(wikiRoot, ".llmwiki", "episodes.json"), []);
-    const episode = episodes.find((item) => slugifyEpisodeFile(item.sourceFile) === episodeSlug);
-    for (const claimId of episode?.candidateClaimIds ?? []) {
-      claimIds.add(claimId);
-    }
+  if (isEpisodePagePath(relPath)) {
+    return readEpisodeClaimIds(wikiRoot, relPath);
   }
-
-  return claimIds;
+  return new Set<string>();
 }
 
 function slugifyEpisodeFile(sourceFile: string): string {
@@ -481,6 +462,85 @@ function readJsonFile<T>(filePath: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function appendChatMessageEntries(
+  entries: ChatMessageEntry[],
+  occurrences: Map<string, number>,
+  matches: Iterable<RegExpMatchArray>,
+  readEntry: (match: RegExpMatchArray) => { timestamp: string; speaker: string; text: string },
+): void {
+  for (const match of matches) {
+    const parsed = readEntry(match);
+    const timestamp = parsed.timestamp.trim();
+    if (!timestamp) {
+      continue;
+    }
+    const occurrence = (occurrences.get(timestamp) ?? 0) + 1;
+    occurrences.set(timestamp, occurrence);
+    entries.push({
+      timestamp,
+      speaker: parsed.speaker.trim(),
+      text: parsed.text.trim(),
+      occurrence,
+      anchor: buildChatMessageAnchor(timestamp, occurrence),
+    });
+  }
+}
+
+function collectEvidenceTimestampMatches(
+  line: string,
+): Array<{ timestamp: string; snippet: string }> {
+  const matches = Array.from(line.matchAll(EVIDENCE_LINE_TIMESTAMP_RE));
+  const results: Array<{ timestamp: string; snippet: string }> = [];
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index];
+    const timestamp = match[1]?.trim() ?? "";
+    if (!timestamp) {
+      continue;
+    }
+    const start = (match.index ?? 0) + match[0].length;
+    const end = index + 1 < matches.length
+      ? matches[index + 1]?.index ?? line.length
+      : line.length;
+    results.push({
+      timestamp,
+      snippet: line.slice(start, end).trim(),
+    });
+  }
+  return results;
+}
+
+function isConceptPagePath(relPath: string): boolean {
+  return relPath.startsWith("wiki/concepts/");
+}
+
+function isProcedurePagePath(relPath: string): boolean {
+  return relPath.startsWith("wiki/procedures/");
+}
+
+function isEpisodePagePath(relPath: string): boolean {
+  return relPath.startsWith("wiki/episodes/");
+}
+
+function readConceptClaimIds(wikiRoot: string, relPath: string): Set<string> {
+  const slug = relPath.replace(/^wiki\/concepts\//, "").replace(/\.md$/i, "");
+  const claims = readJsonFile<ClaimRecord[]>(path.join(wikiRoot, ".llmwiki", "claims.json"), []);
+  return new Set(claims.filter((claim) => claim.conceptSlug === slug).map((claim) => claim.id));
+}
+
+function readProcedureClaimIds(wikiRoot: string, relPath: string): Set<string> {
+  const procedureId = relPath.replace(/^wiki\/procedures\//, "").replace(/\.md$/i, "");
+  const procedures = readJsonFile<ProcedureRecord[]>(path.join(wikiRoot, ".llmwiki", "procedures.json"), []);
+  const procedure = procedures.find((item) => item.id === procedureId);
+  return new Set(procedure?.supportingClaimIds ?? []);
+}
+
+function readEpisodeClaimIds(wikiRoot: string, relPath: string): Set<string> {
+  const episodeSlug = relPath.replace(/^wiki\/episodes\//, "").replace(/\.md$/i, "");
+  const episodes = readJsonFile<EpisodeRecord[]>(path.join(wikiRoot, ".llmwiki", "episodes.json"), []);
+  const episode = episodes.find((item) => slugifyEpisodeFile(item.sourceFile) === episodeSlug);
+  return new Set(episode?.candidateClaimIds ?? []);
 }
 
 export function handleRaw(cfg: ServerConfig) {

@@ -1,10 +1,13 @@
 {
-  "target_vault": "C:\\Users\\Administrator\\Desktop\\ai的仓库",
-  "compiler_root": "C:\\Users\\Administrator\\Desktop\\llm-wiki-compiler-main",
+  "source_vault_root": "D:\\Desktop\\ai的仓库",
+  "runtime_output_root": "D:\\Desktop\\llm-wiki-compiler-main\\.runtime\\ai-vault",
+  "compiler_root": "D:\\Desktop\\llm-wiki-compiler-main",
   "source_folders": [
-    "C:\\Users\\Administrator\\Desktop\\xiaosong的知识库"
+    "D:\\Desktop\\ai的仓库\\raw"
   ],
   "compile_mode": "batch",
+  "publish_mode": "final_only",
+  "memory_model": "tiered",
   "batch_limit": 20,
   "batch_pattern_order": [
     "ai知识库（第二大脑）__概念__*",
@@ -18,6 +21,7 @@
     ".obsidian",
     ".trash",
     ".claude",
-    ".claudian"
+    ".claudian",
+    "_已清理"
   ]
 }

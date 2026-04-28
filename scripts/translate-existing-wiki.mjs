@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
-import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { listMarkdownFilesRecursive } from "./sync-compile/file-listing.mjs";
 
 const vaultRoot = process.argv[2];
 if (!vaultRoot) {
@@ -64,20 +65,6 @@ function withTimeout(promise, ms, label) {
       setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
     }),
   ]);
-}
-
-async function listMarkdownFiles(root) {
-  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
-  const files = [];
-  for (const entry of entries) {
-    const fullPath = path.join(root, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...await listMarkdownFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith(".md")) {
-      files.push(fullPath);
-    }
-  }
-  return files;
 }
 
 async function translateFile(filePath) {
@@ -152,7 +139,8 @@ async function main() {
   await cp(wikiRoot, backupRoot, { recursive: true });
   console.log(`Backup: ${backupRoot}`);
 
-  const files = (await listMarkdownFiles(conceptsRoot))
+  const files = (await listMarkdownFilesRecursive(conceptsRoot, { ignoreMissing: true }))
+    .map((relativePath) => path.join(conceptsRoot, relativePath))
     .filter((file) => path.basename(file) !== ".md")
     .sort();
 

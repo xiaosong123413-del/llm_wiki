@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createWikiCommentSurface } from "../web/client/src/components/wiki-comments.js";
 import { renderWikiPage } from "../web/client/src/pages/wiki/index.js";
 
 describe("wiki page comments", () => {
@@ -70,12 +71,10 @@ describe("wiki page comments", () => {
     const page = renderWikiPage("wiki/concepts/test.md");
     document.body.appendChild(page);
     await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Beta");
-    await waitForText(page, "共享评论");
-
     expect(page.querySelector("[data-feedback-submit]")).toBeNull();
     expect(page.querySelector("[data-wiki-comments-add]")).toBeNull();
-    expect(page.textContent).toContain("共享评论");
-    expect(page.querySelector("[data-wiki-comments-highlight=\"comment-1\"]")?.textContent).toBe("Beta");
+    expect(page.textContent).not.toContain("共享评论");
+    expect(page.querySelector("[data-wiki-comments-highlight=\"comment-1\"]")).toBeNull();
 
     const commentsPanel = page.querySelector(".wiki-page__comments") as HTMLElement;
     const article = page.querySelector<HTMLElement>("[data-wiki-article]")!;
@@ -88,7 +87,9 @@ describe("wiki page comments", () => {
 
     const fetchMock = vi.mocked(fetch);
     expect(commentsPanel.hidden).toBe(false);
-    expect(article.innerHTML).toBe(articleMarkupBeforeToggle);
+    await waitForText(page, "共享评论");
+    expect(article.innerHTML).not.toBe(articleMarkupBeforeToggle);
+    expect(page.querySelector("[data-wiki-comments-highlight=\"comment-1\"]")?.textContent).toBe("Beta");
     expect(fetchMock.mock.calls.some(([call]) => String(call) === "/api/wiki-comments?path=wiki%2Fconcepts%2Ftest.md")).toBe(true);
     expect(fetchMock.mock.calls.some(([call, options]) =>
       String(call) === "/api/wiki-comments" && options?.method === "POST",
@@ -97,7 +98,33 @@ describe("wiki page comments", () => {
     commentsButton?.click();
 
     expect(commentsPanel.hidden).toBe(true);
-    expect(article.innerHTML).toBe(articleMarkupBeforeToggle);
+    expect(article.innerHTML).not.toBe(articleMarkupBeforeToggle);
+  });
+
+  it("can adopt an already-rendered article without rewriting the content", async () => {
+    const content = document.createElement("article");
+    const list = document.createElement("div");
+    const status = document.createElement("p");
+    const panel = document.createElement("aside");
+    content.innerHTML = "<p>Already rendered</p>";
+
+    const surface = createWikiCommentSurface({
+      content,
+      list,
+      status,
+      panel,
+      emptyLabel: "empty",
+    });
+
+    await surface.setDocument("wiki/concepts/rendered.md", "<p>Replacement</p>", {
+      sourceEditable: true,
+      refreshPage: () => {},
+      loadOnSet: false,
+      contentAlreadyRendered: true,
+    });
+
+    expect(content.innerHTML).toBe("<p>Already rendered</p>");
+    expect(status.textContent).toBe("打开评论面板后读取评论。");
   });
 
   it("keeps the toc and comments drawer from remaining open together", async () => {
@@ -158,7 +185,7 @@ describe("wiki page comments", () => {
     expect(commentsPanel?.hidden).toBe(true);
   });
 
-  it("shows a friendly error for non-json comment responses and closes the comments panel", async () => {
+  it("shows a friendly error for non-json comment responses and lets the comments panel close", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/tree?")) {
@@ -200,15 +227,14 @@ describe("wiki page comments", () => {
 
     const page = renderWikiPage("wiki/concepts/broken.md");
     document.body.appendChild(page);
+    await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
     await waitForText(page, "评论服务暂时不可用");
 
     expect(page.textContent).toContain("评论服务暂时不可用");
 
     const commentsPanel = page.querySelector(".wiki-page__comments") as HTMLElement;
-    expect(commentsPanel.hidden).toBe(true);
-
-    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
-
     expect(commentsPanel.hidden).toBe(false);
 
     page.querySelector<HTMLButtonElement>("[data-wiki-comments-close]")?.click();
@@ -376,6 +402,8 @@ describe("wiki page comments", () => {
     const page = renderWikiPage("wiki/concepts/editable.md");
     document.body.appendChild(page);
     await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
     await waitForText(page, "初始评论");
 
     page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
@@ -420,6 +448,332 @@ describe("wiki page comments", () => {
     expect(deleteCall).toBeTruthy();
     await waitForCondition(() => page.querySelector("[data-wiki-comments-card=\"comment-1\"]") === null);
     expect(page.querySelector("[data-wiki-comments-input]")).toBeNull();
+  });
+
+  it("ignores stale comment responses from a previous page after setDocument switches paths", async () => {
+    let resolveFirstComments: ((value: ReturnType<typeof ok>) => void) | null = null;
+    let resolveSecondComments: ((value: ReturnType<typeof ok>) => void) | null = null;
+
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Ffirst.md") {
+        return new Promise((resolveFetch) => {
+          resolveFirstComments = resolveFetch as (value: ReturnType<typeof ok>) => void;
+        });
+      }
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Fsecond.md") {
+        return new Promise((resolveFetch) => {
+          resolveSecondComments = resolveFetch as (value: ReturnType<typeof ok>) => void;
+        });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+
+    const content = document.createElement("article");
+    const list = document.createElement("div");
+    const status = document.createElement("p");
+    const panel = document.createElement("aside");
+    const surface = createWikiCommentSurface({
+      content,
+      list,
+      status,
+      panel,
+      emptyLabel: "empty",
+    });
+
+    const firstLoad = surface.setDocument("wiki/concepts/first.md", "<p>Alpha Beta</p>", {
+      sourceEditable: true,
+      refreshPage: () => {},
+    });
+    const secondLoad = surface.setDocument("wiki/concepts/second.md", "<p>Gamma Delta</p>", {
+      sourceEditable: true,
+      refreshPage: () => {},
+    });
+
+    resolveSecondComments?.(ok([
+      {
+        id: "comment-second",
+        path: "wiki/concepts/second.md",
+        quote: "Delta",
+        text: "第二页评论",
+        start: 6,
+        end: 11,
+        resolved: false,
+        createdAt: "2026-04-25T00:00:00.000Z",
+      },
+    ]));
+    await secondLoad;
+
+    expect(list.textContent).toContain("第二页评论");
+    expect(content.textContent).toContain("Gamma Delta");
+    expect(content.textContent).not.toContain("Alpha Beta");
+    expect(content.querySelector("[data-wiki-comments-highlight=\"comment-second\"]")?.textContent).toBe("Delta");
+
+    resolveFirstComments?.(ok([
+      {
+        id: "comment-first",
+        path: "wiki/concepts/first.md",
+        quote: "Beta",
+        text: "第一页旧评论",
+        start: 6,
+        end: 10,
+        resolved: false,
+        createdAt: "2026-04-25T00:00:00.000Z",
+      },
+    ]));
+    await firstLoad;
+    await flush();
+
+    expect(list.textContent).toContain("第二页评论");
+    expect(list.textContent).not.toContain("第一页旧评论");
+    expect(content.textContent).toContain("Gamma Delta");
+    expect(content.textContent).not.toContain("Alpha Beta");
+    expect(content.querySelector("[data-wiki-comments-highlight=\"comment-first\"]")).toBeNull();
+    expect(status.textContent).toContain("已加载 1 条评论");
+  });
+
+  it("ignores a stale create-comment response after setDocument switches to another page", async () => {
+    let resolveCreateComment: ((value: ReturnType<typeof ok>) => void) | null = null;
+
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Ffirst.md") {
+        return Promise.resolve(ok([]));
+      }
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Fsecond.md") {
+        return Promise.resolve(ok([]));
+      }
+      if (url === "/api/wiki-comments" && init?.method === "POST") {
+        return new Promise((resolveFetch) => {
+          resolveCreateComment = resolveFetch as (value: ReturnType<typeof ok>) => void;
+        });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+
+    const content = document.createElement("article");
+    const list = document.createElement("div");
+    const status = document.createElement("p");
+    const panel = document.createElement("aside");
+    const surface = createWikiCommentSurface({
+      content,
+      list,
+      status,
+      panel,
+      emptyLabel: "empty",
+    });
+
+    await surface.setDocument("wiki/concepts/first.md", "<p>Alpha Beta</p>", {
+      sourceEditable: true,
+      refreshPage: () => {},
+    });
+
+    const createRequest = surface.createFromSelection({
+      quote: "Beta",
+      start: 6,
+      end: 10,
+    });
+
+    await surface.setDocument("wiki/concepts/second.md", "<p>Gamma Delta</p>", {
+      sourceEditable: true,
+      refreshPage: () => {},
+    });
+
+    resolveCreateComment?.(ok({
+      id: "comment-first-created",
+      path: "wiki/concepts/first.md",
+      quote: "Beta",
+      text: "",
+      start: 6,
+      end: 10,
+      resolved: false,
+      createdAt: "2026-04-25T00:00:00.000Z",
+    }));
+    await createRequest;
+    await flush();
+
+    expect(content.textContent).toContain("Gamma Delta");
+    expect(content.textContent).not.toContain("Alpha Beta");
+    expect(content.querySelector("[data-wiki-comments-highlight=\"comment-first-created\"]")).toBeNull();
+    expect(list.querySelector("[data-wiki-comments-card]")).toBeNull();
+    expect(list.textContent).toContain("empty");
+    expect(status.textContent).not.toContain("评论已创建");
+  });
+
+  it("ignores a stale confirm response after setDocument switches to another page", async () => {
+    let resolveConfirmDraft: ((value: ReturnType<typeof ok>) => void) | null = null;
+    const refreshFirst = vi.fn();
+    const refreshSecond = vi.fn();
+
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Ffirst.md") {
+        return Promise.resolve(ok([
+          {
+            id: "comment-first",
+            path: "wiki/concepts/first.md",
+            quote: "Beta",
+            text: "把 Beta 改成 Better。",
+            start: 6,
+            end: 10,
+            resolved: false,
+            createdAt: "2026-04-25T00:00:00.000Z",
+          },
+        ]));
+      }
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Fsecond.md") {
+        return Promise.resolve(ok([]));
+      }
+      if (url === "/api/wiki-comments/comment-first/ai-draft" && init?.method === "POST") {
+        return Promise.resolve(ok({
+          id: "draft-1",
+          commentId: "comment-first",
+          pagePath: "wiki/concepts/first.md",
+          diffText: [
+            "--- current",
+            "+++ proposed",
+            "@@",
+            "-Alpha Beta",
+            "+Alpha Better",
+          ].join("\n"),
+        }));
+      }
+      if (url === "/api/wiki-comments/comment-first/ai-draft/draft-1/confirm" && init?.method === "POST") {
+        return new Promise((resolveFetch) => {
+          resolveConfirmDraft = resolveFetch as (value: ReturnType<typeof ok>) => void;
+        });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+
+    const content = document.createElement("article");
+    const list = document.createElement("div");
+    const status = document.createElement("p");
+    const panel = document.createElement("aside");
+    const surface = createWikiCommentSurface({
+      content,
+      list,
+      status,
+      panel,
+      emptyLabel: "empty",
+    });
+
+    await surface.setDocument("wiki/concepts/first.md", "<p>Alpha Beta</p>", {
+      sourceEditable: true,
+      refreshPage: refreshFirst,
+    });
+
+    list.querySelector<HTMLButtonElement>("[data-wiki-comments-ai-resolve]")?.click();
+    await waitForCondition(() => list.textContent?.includes("确认写回") === true);
+
+    list.querySelector<HTMLButtonElement>("[data-wiki-comments-ai-confirm]")?.click();
+
+    await surface.setDocument("wiki/concepts/second.md", "<p>Gamma Delta</p>", {
+      sourceEditable: true,
+      refreshPage: refreshSecond,
+    });
+
+    resolveConfirmDraft?.(ok({
+      id: "draft-1",
+      pagePath: "wiki/concepts/first.md",
+      page: {
+        path: "wiki/concepts/first.md",
+        title: "First",
+        html: "<p>Alpha Better</p>",
+        raw: "Alpha Better",
+        frontmatter: null,
+        modifiedAt: "2026-04-25T00:10:00.000Z",
+        sourceEditable: true,
+      },
+    }));
+    await flush();
+    await flush();
+
+    expect(content.textContent).toContain("Gamma Delta");
+    expect(content.textContent).not.toContain("Alpha Better");
+    expect(refreshFirst).not.toHaveBeenCalled();
+    expect(refreshSecond).not.toHaveBeenCalled();
+    expect(status.textContent).not.toContain("评论已解决");
+  });
+
+  it("closes the selection toolbar even when clipboard copy fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/tree?")) {
+        return ok({
+          name: "wiki",
+          path: "wiki",
+          kind: "dir",
+          children: [
+            {
+              name: "wiki",
+              path: "wiki",
+              kind: "dir",
+              children: [{ name: "copy.md", path: "wiki/concepts/copy.md", kind: "file" }],
+            },
+          ],
+        });
+      }
+      if (url.includes("/api/page?")) {
+        return rawOk({
+          path: "wiki/concepts/copy.md",
+          title: "Copy",
+          html: "<h1>Copy</h1><p id=\"wiki-target\">Alpha Beta Gamma</p>",
+          raw: "# Copy\n\nAlpha Beta Gamma",
+          frontmatter: null,
+          modifiedAt: "2026-04-25T00:00:00.000Z",
+        });
+      }
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Fcopy.md") {
+        return ok([]);
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+
+    const unhandledErrors: unknown[] = [];
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      unhandledErrors.push(event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+
+    const clipboard = {
+      writeText: vi.fn(async () => {
+        throw new Error("clipboard blocked");
+      }),
+    };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: clipboard,
+    });
+
+    try {
+      const page = renderWikiPage("wiki/concepts/copy.md");
+      document.body.appendChild(page);
+      await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+
+      const textNode = page.querySelector("#wiki-target")?.lastChild;
+      const range = document.createRange();
+      range.setStart(textNode!, 6);
+      range.setEnd(textNode!, 10);
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+      await flush();
+
+      const toolbar = page.querySelector<HTMLElement>("[data-wiki-selection-toolbar]")!;
+      expect(toolbar.hidden).toBe(false);
+
+      page.querySelector<HTMLButtonElement>("[data-wiki-selection-copy]")?.click();
+      await flush();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(toolbar.hidden).toBe(true);
+      expect(unhandledErrors).toEqual([]);
+    } finally {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    }
   });
 
   it("shows AI auto resolve only for editable unresolved comments with text", async () => {
@@ -491,6 +845,8 @@ describe("wiki page comments", () => {
     const page = renderWikiPage("wiki/concepts/editable.md");
     document.body.appendChild(page);
     await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
     await waitForText(page, "把这里改成更具体的描述。");
 
     page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
@@ -588,6 +944,8 @@ describe("wiki page comments", () => {
     const page = renderWikiPage("wiki/concepts/editable.md");
     document.body.appendChild(page);
     await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
     await waitForText(page, "把 Beta 改成 Better。");
 
     page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
@@ -599,7 +957,7 @@ describe("wiki page comments", () => {
 
     await waitForText(page, "+++ proposed");
 
-    const confirmButton = findButtonsByText(page, "确认写入")[0];
+    const confirmButton = findButtonsByText(page, "确认写回")[0];
     expect(confirmButton).toBeTruthy();
     confirmButton?.click();
 
@@ -609,6 +967,100 @@ describe("wiki page comments", () => {
     expect(page.querySelector<HTMLElement>("[data-wiki-article]")?.textContent).toContain("Alpha Better Gamma");
     expect(page.querySelector<HTMLElement>("[data-wiki-article]")?.textContent).not.toContain("Alpha Beta Gamma");
     await waitForText(page, "评论已解决");
+  });
+
+  it("discards AI diff review and restores the normal unresolved comment state", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/tree?")) {
+        return ok({
+          name: "wiki",
+          path: "wiki",
+          kind: "dir",
+          children: [
+            {
+              name: "wiki",
+              path: "wiki",
+              kind: "dir",
+              children: [{ name: "editable.md", path: "wiki/concepts/editable.md", kind: "file" }],
+            },
+          ],
+        });
+      }
+      if (url.includes("/api/page?")) {
+        return rawOk({
+          path: "wiki/concepts/editable.md",
+          title: "Editable",
+          html: "<h1>Editable</h1><p>Alpha Beta Gamma</p>",
+          raw: "# Editable\n\nAlpha Beta Gamma",
+          frontmatter: null,
+          modifiedAt: "2026-04-25T00:00:00.000Z",
+          sourceEditable: true,
+        });
+      }
+      if (url === "/api/wiki-comments?path=wiki%2Fconcepts%2Feditable.md") {
+        return ok([
+          {
+            id: "comment-1",
+            path: "wiki/concepts/editable.md",
+            quote: "Beta",
+            text: "把 Beta 改成 Better。",
+            start: 6,
+            end: 10,
+            resolved: false,
+            createdAt: "2026-04-25T00:00:00.000Z",
+          },
+        ]);
+      }
+      if (url === "/api/wiki-comments/comment-1/ai-draft" && init?.method === "POST") {
+        return ok({
+          id: "draft-1",
+          commentId: "comment-1",
+          pagePath: "wiki/concepts/editable.md",
+          status: "done-await-confirm",
+          diffText: [
+            "--- current",
+            "+++ proposed",
+            "@@",
+            "-# Editable",
+            "-",
+            "-Alpha Beta Gamma",
+            "+# Editable",
+            "+",
+            "+Alpha Better Gamma",
+          ].join("\n"),
+        });
+      }
+      if (url === "/api/wiki-comments/comment-1/ai-draft/draft-1" && init?.method === "DELETE") {
+        return ok(null);
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }));
+
+    const page = renderWikiPage("wiki/concepts/editable.md");
+    document.body.appendChild(page);
+    await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
+    await waitForText(page, "把 Beta 改成 Better。");
+
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
+
+    const aiResolveButton = findButtonsByText(page, "AI自动解决")[0];
+    expect(aiResolveButton).toBeTruthy();
+    aiResolveButton?.click();
+
+    await waitForText(page, "+++ proposed");
+
+    const discardButton = findButtonsByText(page, "放弃草案")[0];
+    expect(discardButton).toBeTruthy();
+    discardButton?.click();
+
+    await waitForCondition(() => page.textContent?.includes("+++ proposed") !== true);
+    expect(page.textContent).toContain("把 Beta 改成 Better。");
+    expect(page.textContent).toContain("AI自动解决");
+    expect(page.textContent).not.toContain("评论已解决");
   });
 
   it("does not show AI auto resolve on runtime-only wiki pages", async () => {
@@ -660,6 +1112,8 @@ describe("wiki page comments", () => {
     const page = renderWikiPage("wiki/concepts/runtime-only.md");
     document.body.appendChild(page);
     await waitForText(page.querySelector<HTMLElement>("[data-wiki-article]")!, "Alpha Beta Gamma");
+    page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();
+    await flush();
     await waitForText(page, "runtime-only 页面也不能 AI 自动解决");
 
     page.querySelector<HTMLButtonElement>("[data-wiki-comment-action]")?.click();

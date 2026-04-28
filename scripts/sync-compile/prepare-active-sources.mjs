@@ -1,9 +1,9 @@
 import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
-export async function prepareActiveSources(vaultRoot, selectedFiles) {
+export async function prepareActiveSources(vaultRoot, selectedFiles, sourceRoot = vaultRoot) {
   const activeDir = path.join(vaultRoot, "sources");
-  const fullDir = path.join(vaultRoot, "sources_full");
+  const fullDir = path.join(sourceRoot, "sources_full");
 
   await mkdir(activeDir, { recursive: true });
   const existing = await readdir(activeDir).catch(() => []);

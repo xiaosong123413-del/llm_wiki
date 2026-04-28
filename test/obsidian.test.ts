@@ -5,7 +5,6 @@ import { addObsidianMeta, generateMOC } from "../src/compiler/obsidian.js";
 import { buildFrontmatter } from "../src/utils/markdown.js";
 import { makeTempRoot } from "./fixtures/temp-root.js";
 
-/** Write a concept page with optional tags. */
 async function writePage(
   dir: string,
   slug: string,
@@ -84,6 +83,7 @@ describe("generateMOC", () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
 
+    expect(moc).toContain("## \u4e3b\u9898\u5bfc\u822a");
     expect(moc).toContain("## ml");
     expect(moc).toContain("## databases");
     expect(moc).toContain("[[Alpha]]");
@@ -99,7 +99,7 @@ describe("generateMOC", () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
 
-    expect(moc).toContain("## 未分类");
+    expect(moc).toContain("## \u672a\u5206\u7c7b");
     expect(moc).toContain("[[Beta]]");
   });
 
@@ -110,20 +110,26 @@ describe("generateMOC", () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
 
-    expect(moc).toMatch(/^# 内容地图/);
+    expect(moc).toMatch(/^# \u5185\u5bb9\u5730\u56fe/);
+    expect(moc).toContain("## \u5e38\u7528\u5165\u53e3");
     expect(moc).toContain("- [[Alpha]]");
   });
 
   it("handles empty concepts directory", async () => {
     await generateMOC(root);
     const moc = await readFile(path.join(root, "wiki/MOC.md"), "utf-8");
-    expect(moc).toContain("# 内容地图");
+    expect(moc).toContain("# \u5185\u5bb9\u5730\u56fe");
   });
 
   it("excludes orphaned pages", async () => {
     const dir = path.join(root, "wiki/concepts");
     await writePage(dir, "alive", "Alive", ["ml"]);
-    const orphanFm = buildFrontmatter({ title: "Dead", summary: "Gone", orphaned: true, tags: ["ml"] });
+    const orphanFm = buildFrontmatter({
+      title: "Dead",
+      summary: "Gone",
+      orphaned: true,
+      tags: ["ml"],
+    });
     await writeFile(path.join(dir, "dead.md"), `${orphanFm}\n\nOrphaned.\n`);
 
     await generateMOC(root);

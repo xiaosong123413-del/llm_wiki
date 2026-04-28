@@ -1,0 +1,224 @@
+<div class="section">
+  <div class="label">Wiki 首页参考</div>
+  <h2>Wiki 首页封面参考稿</h2>
+  <p class="subtitle">这一版先严格对齐你给的截图骨架：顶部欢迎区、左侧精选条目、右侧最近更新和关于、下方分类浏览。</p>
+</div>
+
+<style>
+  .wiki-home-ref {
+    display: grid;
+    gap: 14px;
+    color: #202122;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .wiki-home-ref__hero {
+    padding: 10px 0 4px;
+    text-align: center;
+  }
+
+  .wiki-home-ref__hero h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+  }
+
+  .wiki-home-ref__hero p {
+    margin: 10px 0 0;
+    color: #54595d;
+    font-size: 13px;
+  }
+
+  .wiki-home-ref__hero-meta {
+    margin-top: 8px;
+    color: #54595d;
+    font-size: 12px;
+  }
+
+  .wiki-home-ref__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .wiki-home-ref__left,
+  .wiki-home-ref__right {
+    display: grid;
+    gap: 10px;
+  }
+
+  .wiki-home-ref__panel {
+    border: 1px solid #c8ccd1;
+    background: #ffffff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.92);
+  }
+
+  .wiki-home-ref__panel-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid #c8ccd1;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .wiki-home-ref__panel-header--blue {
+    background: #dfefff;
+  }
+
+  .wiki-home-ref__panel-header--green {
+    background: #e9f6df;
+  }
+
+  .wiki-home-ref__panel-header--gray {
+    background: #f1f2f3;
+  }
+
+  .wiki-home-ref__featured {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .wiki-home-ref__featured-thumb {
+    height: 80px;
+    border: 1px solid #c8ccd1;
+    background:
+      linear-gradient(135deg, rgba(38,67,126,0.2), rgba(38,67,126,0.04)),
+      url("https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=60") center/cover no-repeat;
+  }
+
+  .wiki-home-ref__featured h3,
+  .wiki-home-ref__side-list h3,
+  .wiki-home-ref__category-block h3 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .wiki-home-ref__featured p,
+  .wiki-home-ref__about p,
+  .wiki-home-ref__side-list li,
+  .wiki-home-ref__category-block li {
+    margin: 0;
+    color: #202122;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .wiki-home-ref__readmore {
+    margin-top: 8px;
+    color: #0645ad;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .wiki-home-ref__side-list,
+  .wiki-home-ref__about,
+  .wiki-home-ref__categories {
+    padding: 12px;
+  }
+
+  .wiki-home-ref__side-list ul,
+  .wiki-home-ref__category-block ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .wiki-home-ref__side-list li + li,
+  .wiki-home-ref__category-block li + li {
+    margin-top: 4px;
+  }
+
+  .wiki-home-ref__date {
+    color: #72777d;
+    font-size: 11px;
+  }
+
+  .wiki-home-ref__categories {
+    display: grid;
+    gap: 10px;
+  }
+
+  .wiki-home-ref__category-block {
+    display: grid;
+    gap: 6px;
+  }
+
+  .wiki-home-ref__category-block h3 {
+    font-size: 14px;
+  }
+</style>
+
+<div class="wiki-home-ref">
+  <section class="wiki-home-ref__hero">
+    <h1>欢迎来到 Peiweipedia</h1>
+    <p>这里是由多年日记、笔记与长期沉淀编译出来的个人知识库。</p>
+    <div class="wiki-home-ref__hero-meta">共 N 篇条目，分布在 M 个分类中（根据当前 wiki 自动统计）</div>
+  </section>
+
+  <div class="wiki-home-ref__layout">
+    <div class="wiki-home-ref__left">
+      <section class="wiki-home-ref__panel">
+        <div class="wiki-home-ref__panel-header wiki-home-ref__panel-header--blue">精选条目</div>
+        <div class="wiki-home-ref__featured">
+          <div class="wiki-home-ref__featured-thumb"></div>
+          <div>
+            <h3><a href="#">Sharif Shameem</a>（人物）—— 他是 Farza 最长期、也最重要的亲密关系之一，从至少 2019 年持续贯穿到 2026 年。</h3>
+            <p style="margin-top:6px;">他既是室友、合作伙伴、潜在联合创始人，也是几乎贯穿 Farza 成年阶段多个项目周期的稳定人物。</p>
+            <div class="wiki-home-ref__readmore">阅读全文 →</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="wiki-home-ref__panel">
+        <div class="wiki-home-ref__panel-header wiki-home-ref__panel-header--green">按分类浏览</div>
+        <div class="wiki-home-ref__categories">
+          <section class="wiki-home-ref__category-block">
+            <h3>成果物</h3>
+            <ul>
+              <li><a href="#">4 月 18 日体检清单</a> <span class="wiki-home-ref__date">– 成果物</span></li>
+              <li><a href="#">6 月 28 日冲刺备忘录</a> <span class="wiki-home-ref__date">– 成果物</span></li>
+            </ul>
+          </section>
+          <section class="wiki-home-ref__category-block">
+            <h3>评估</h3>
+            <ul>
+              <li><a href="#">7 月 6 日自我评估</a> <span class="wiki-home-ref__date">– 评估</span></li>
+              <li><a href="#">10 月 29 日人生复盘</a> <span class="wiki-home-ref__date">– 评估</span></li>
+            </ul>
+          </section>
+          <section class="wiki-home-ref__category-block">
+            <h3>对象群体</h3>
+            <ul>
+              <li><a href="#">家庭教育家长</a> <span class="wiki-home-ref__date">– 对象群体</span></li>
+              <li><a href="#">创作者型经营者</a> <span class="wiki-home-ref__date">– 对象群体</span></li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="wiki-home-ref__right">
+      <section class="wiki-home-ref__panel">
+        <div class="wiki-home-ref__panel-header wiki-home-ref__panel-header--blue">最近更新</div>
+        <div class="wiki-home-ref__side-list">
+          <ul>
+            <li><a href="#">4 月 18 日体检清单</a> <span class="wiki-home-ref__date">(2026-04-04)</span></li>
+            <li><a href="#">6 月 28 日冲刺备忘录</a> <span class="wiki-home-ref__date">(2026-04-04)</span></li>
+            <li><a href="#">7 月 6 日自我评估</a> <span class="wiki-home-ref__date">(2026-04-04)</span></li>
+            <li><a href="#">10 月 29 日人生复盘</a> <span class="wiki-home-ref__date">(2026-04-04)</span></li>
+            <li><a href="#">家庭教育家长</a> <span class="wiki-home-ref__date">(2026-04-04)</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="wiki-home-ref__panel">
+        <div class="wiki-home-ref__panel-header wiki-home-ref__panel-header--gray">关于</div>
+        <div class="wiki-home-ref__about">
+          <p>这里的说明文案不写死，会根据你自己的 wiki 首页内容自动生成或提取，确保和全文语义保持一致。</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

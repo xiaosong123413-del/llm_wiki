@@ -130,8 +130,8 @@ describe("createMainSlot", () => {
     expect(shell.getAttribute("data-route")).toBe("wiki");
     expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
     expect(shell.hasAttribute("data-full-page")).toBe(true);
-    expect(container.querySelector("[data-wiki-title]")?.textContent).toContain("Wiki");
-    expect(container.querySelector("[data-wiki-path]")?.textContent).toContain("wiki/index.md");
+    expect(container.querySelector("[data-wiki-home]")).toBeTruthy();
+    expect(container.textContent).toContain("欢迎来到 Peiweipedia");
   });
 
   it("shows sources as a full page without the file browser or chat layout", () => {
@@ -214,25 +214,24 @@ describe("createMainSlot", () => {
     expect(container.querySelector("[data-workspace-tab='project-progress']")?.getAttribute("data-active")).toBe("true");
   });
 
-  it("shows publish as a full page without the file browser or chat layout", async () => {
+  it("opens app settings directly when the route targets app-config", async () => {
     const container = document.getElementById("main-slot") as HTMLElement;
     const legacyChatNode = document.getElementById("legacy-chat") as HTMLElement;
     const legacyBrowser = document.getElementById("browser-slot") as HTMLElement;
     const shell = document.getElementById("workspace-shell") as HTMLElement;
     const slot = createMainSlot({ container, legacyChatNode, legacyBrowser });
 
-    slot.render({ name: "publish", params: {} });
+    slot.render({ name: "settings", params: { section: "app-config" } });
     await flushMicrotasks();
 
     expect(legacyChatNode.hidden).toBe(true);
     expect(container.contains(legacyChatNode)).toBe(false);
     expect(container.children).toHaveLength(1);
     expect(legacyBrowser.hidden).toBe(true);
-    expect(shell.getAttribute("data-route")).toBe("publish");
+    expect(shell.getAttribute("data-route")).toBe("settings");
     expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
     expect(shell.hasAttribute("data-full-page")).toBe(true);
-    expect(container.querySelector(".publish-page__title")?.textContent).toContain("Publish");
-    expect(container.querySelector("[data-publish-mode]")?.textContent).toContain("cloudflare-unconfigured");
+    expect(container.querySelector("[data-settings-panel=\"app-config\"]")?.hasAttribute("hidden")).toBe(false);
   });
 
   it("restores the chat node after leaving a full page", () => {

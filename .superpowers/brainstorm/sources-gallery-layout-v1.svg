@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="源料库严格固定视口栅格线框">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f6f7fc"/>
+      <stop offset="100%" stop-color="#eef1f8"/>
+    </linearGradient>
+    <linearGradient id="cardImageA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1d1f26"/>
+      <stop offset="100%" stop-color="#090a0d"/>
+    </linearGradient>
+    <linearGradient id="cardImageB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e3ebff"/>
+      <stop offset="55%" stop-color="#5868ff"/>
+      <stop offset="100%" stop-color="#5b26da"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#172033" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <rect x="28" y="24" width="1544" height="852" rx="30" fill="#f6f7fc"/>
+
+  <rect x="48" y="40" width="1504" height="100" rx="26" fill="#ffffff" stroke="#dfe4f2"/>
+  <text x="88" y="76" fill="#6658f4" font-size="14" font-weight="700" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" letter-spacing="2">SOURCES GALLERY</text>
+  <text x="88" y="113" fill="#111827" font-size="34" font-weight="800" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">源料库</text>
+
+  <rect x="88" y="146" width="372" height="44" rx="22" fill="#ffffff" stroke="#dfe4f2"/>
+  <text x="112" y="174" fill="#6b7280" font-size="15" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">搜索  标题 / 正文 / URL / 标签</text>
+
+  <rect x="478" y="146" width="174" height="44" rx="22" fill="#ffffff" stroke="#dfe4f2"/>
+  <text x="500" y="174" fill="#111827" font-size="15" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">排序  最近编辑</text>
+
+  <rect x="670" y="146" width="92" height="44" rx="22" fill="#ffffff" stroke="#dfe4f2"/>
+  <rect x="780" y="146" width="92" height="44" rx="22" fill="#ffffff" stroke="#dfe4f2"/>
+  <rect x="890" y="146" width="92" height="44" rx="22" fill="#ffffff" stroke="#dfe4f2"/>
+  <text x="701" y="174" fill="#9ca3af" font-size="15" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">来源</text>
+  <text x="811" y="174" fill="#9ca3af" font-size="15" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">标签</text>
+  <text x="921" y="174" fill="#9ca3af" font-size="15" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">状态</text>
+
+  <text x="1120" y="113" fill="#6b7280" font-size="16" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">固定顶栏，仅保留必要筛选</text>
+  <text x="1120" y="172" fill="#ef4444" font-size="16" font-weight="700" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">不再保留“新增剪藏 / 日记”卡片</text>
+
+  <g transform="translate(48 214)" filter="url(#shadow)">
+    <g>
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#dfe4f2"/>
+      <rect x="16" y="16" width="18" height="18" rx="3" fill="#ffffff" stroke="#aeb6ca"/>
+      <rect x="18" y="18" width="436" height="178" rx="20" fill="url(#cardImageA)"/>
+      <text x="236" y="92" fill="#ffd6e8" font-size="26" font-weight="800" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">图片允许裁切</text>
+      <text x="236" y="130" fill="#ffd6e8" font-size="26" font-weight="800" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">但外框必须完全一致</text>
+      <text x="26" y="230" fill="#111827" font-size="18" font-weight="800" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">图片型卡片标题最多两行，超出直接截断</text>
+      <g font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="12" font-weight="700">
+        <rect x="26" y="248" width="46" height="28" rx="14" fill="#f1efff"/><text x="49" y="266" fill="#6658f4" text-anchor="middle">raw</text>
+        <rect x="82" y="248" width="58" height="28" rx="14" fill="#f1efff"/><text x="111" y="266" fill="#6658f4" text-anchor="middle">image</text>
+      </g>
+      <text x="26" y="289" fill="#6b7280" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">剪藏   小红书</text>
+      <text x="26" y="328" fill="#94a3b8" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">2026/4/24</text>
+      <text x="414" y="328" fill="#6658f4" font-size="20" font-family="Segoe UI Symbol, Segoe UI, sans-serif">↗  ↪</text>
+    </g>
+
+    <g transform="translate(492 0)">
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#dfe4f2"/>
+      <rect x="16" y="16" width="18" height="18" rx="3" fill="#ffffff" stroke="#aeb6ca"/>
+      <rect x="18" y="18" width="436" height="178" rx="20" fill="url(#cardImageB)"/>
+      <text x="236" y="92" fill="#ffffff" font-size="28" font-weight="800" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">封面图只占固定窗口</text>
+      <text x="236" y="130" fill="#ffffff" font-size="28" font-weight="800" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">不允许把卡片撑高</text>
+      <text x="26" y="230" fill="#111827" font-size="18" font-weight="800" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">第二张图片卡和第一张严格同高同宽</text>
+      <g font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="12" font-weight="700">
+        <rect x="26" y="248" width="46" height="28" rx="14" fill="#f1efff"/><text x="49" y="266" fill="#6658f4" text-anchor="middle">raw</text>
+        <rect x="82" y="248" width="58" height="28" rx="14" fill="#f1efff"/><text x="111" y="266" fill="#6658f4" text-anchor="middle">image</text>
+      </g>
+      <text x="26" y="289" fill="#6b7280" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">剪藏   小红书</text>
+      <text x="26" y="328" fill="#94a3b8" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">2026/4/24</text>
+      <text x="414" y="328" fill="#6658f4" font-size="20" font-family="Segoe UI Symbol, Segoe UI, sans-serif">↗  ↪</text>
+    </g>
+
+    <g transform="translate(984 0)">
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#dfe4f2"/>
+      <rect x="16" y="16" width="18" height="18" rx="3" fill="#ffffff" stroke="#aeb6ca"/>
+      <rect x="18" y="18" width="436" height="178" rx="20" fill="#ffffff"/>
+      <text x="34" y="64" fill="#374151" font-size="18" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">文字型卡片不显示全文。</text>
+      <text x="34" y="100" fill="#374151" font-size="18" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">正文只占固定窗口，高度和图片卡一致。</text>
+      <text x="34" y="136" fill="#374151" font-size="18" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">超过窗口后裁切，不再把卡片撑长。</text>
+      <text x="26" y="230" fill="#111827" font-size="18" font-weight="800" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">文字型卡片也按同一高度系统压平</text>
+      <g font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="12" font-weight="700">
+        <rect x="26" y="248" width="46" height="28" rx="14" fill="#eef2ff"/><text x="49" y="266" fill="#6658f4" text-anchor="middle">raw</text>
+        <rect x="82" y="248" width="58" height="28" rx="14" fill="#eef2ff"/><text x="111" y="266" fill="#6658f4" text-anchor="middle">video</text>
+      </g>
+      <text x="26" y="289" fill="#6b7280" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">剪藏   抖音</text>
+      <text x="26" y="328" fill="#94a3b8" font-size="13" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">2026/4/24</text>
+      <text x="414" y="328" fill="#6658f4" font-size="20" font-family="Segoe UI Symbol, Segoe UI, sans-serif">↗  ↪</text>
+    </g>
+
+    <g transform="translate(0 324)">
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#cdd4ea" stroke-dasharray="7 7"/>
+      <text x="236" y="160" fill="#94a3b8" font-size="24" font-weight="700" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">第 4 张卡</text>
+    </g>
+    <g transform="translate(492 324)">
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#cdd4ea" stroke-dasharray="7 7"/>
+      <text x="236" y="160" fill="#94a3b8" font-size="24" font-weight="700" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">第 5 张卡</text>
+    </g>
+    <g transform="translate(984 324)">
+      <rect width="472" height="304" rx="26" fill="#ffffff" stroke="#cdd4ea" stroke-dasharray="7 7"/>
+      <text x="236" y="160" fill="#94a3b8" font-size="24" font-weight="700" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei UI, sans-serif">第 6 张卡</text>
+    </g>
+  </g>
+
+  <g font-family="Segoe UI, Microsoft YaHei UI, sans-serif">
+    <text x="64" y="868" fill="#6b7280" font-size="15">基线：1920x1080 / 100% 缩放 / 顶栏固定 / 画册区内部滚动</text>
+    <text x="1180" y="868" fill="#ef4444" font-size="15" font-weight="700">这版只保留纯画册，不再保留新增表单</text>
+  </g>
+</svg>

@@ -37,6 +37,17 @@ interface SourceGalleryDetail {
   transcriptPath?: string;
 }
 
+interface SourceGalleryFilterOptions {
+  buckets: string[];
+  tags: string[];
+  layers: Array<"raw" | "source">;
+}
+
+interface SourceGalleryListResponse {
+  items: SourceGalleryItem[];
+  filters: SourceGalleryFilterOptions;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -84,6 +95,10 @@ interface PageState {
   selectedPaths: Map<string, string>;
   refreshId: number;
   sort: SourceGallerySort;
+  filters: SourceGalleryFilterOptions;
+  selectedBuckets: string[];
+  selectedTags: string[];
+  selectedLayers: Array<"raw" | "source">;
 }
 
 interface SourcesPageRoot extends HTMLElement {
@@ -99,6 +114,7 @@ const TEXT = {
   source: "\u6765\u6e90",
   tag: "\u6807\u7b7e",
   status: "\u72b6\u6001",
+  all: "\u5168\u90e8",
   selectedSummary: (count: number) => `\u5df2\u9009 ${count} \u9879`,
   importChat: "\u5bfc\u5165\u5bf9\u8bdd",
   batchIngest: "\u6279\u91cf ingest",
@@ -149,9 +165,24 @@ export function renderSourcesPage(): HTMLElement {
                 <option value="created-asc">\u6700\u65e9\u521b\u5efa</option>
               </select>
             </label>
-            <button type="button" class="source-gallery-filter-chip is-placeholder">${TEXT.source}</button>
-            <button type="button" class="source-gallery-filter-chip is-placeholder">${TEXT.tag}</button>
-            <button type="button" class="source-gallery-filter-chip is-placeholder">${TEXT.status}</button>
+            <label class="source-gallery-filter-pill">
+              <span>${TEXT.source}</span>
+              <select data-source-gallery-filter="bucket">
+                <option value="">${TEXT.all}</option>
+              </select>
+            </label>
+            <label class="source-gallery-filter-pill">
+              <span>${TEXT.tag}</span>
+              <select data-source-gallery-filter="tag">
+                <option value="">${TEXT.all}</option>
+              </select>
+            </label>
+            <label class="source-gallery-filter-pill">
+              <span>${TEXT.status}</span>
+              <select data-source-gallery-filter="layer">
+                <option value="">${TEXT.all}</option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -181,6 +212,10 @@ export function renderSourcesPage(): HTMLElement {
     selectedPaths: new Map(),
     refreshId: 0,
     sort: "modified-desc",
+    filters: { buckets: [], tags: [], layers: [] },
+    selectedBuckets: [],
+    selectedTags: [],
+    selectedLayers: [],
   };
 
   const handleResize = (): void => {
@@ -263,6 +298,13 @@ function bindEvents(root: HTMLElement, state: PageState): void {
       void refreshGallery(root, state);
     });
   }
+
+  root.querySelectorAll<HTMLSelectElement>("[data-source-gallery-filter]").forEach((select) => {
+    select.addEventListener("change", () => {
+      syncFilterSelection(select, state);
+      void refreshGallery(root, state);
+    });
+  });
 }
 
 async function refreshGallery(root: HTMLElement, state: PageState): Promise<void> {
@@ -272,13 +314,13 @@ async function refreshGallery(root: HTMLElement, state: PageState): Promise<void
   state.refreshId = refreshId;
   try {
     const query = root.querySelector<HTMLInputElement>("[data-source-gallery-query]")?.value.trim() ?? "";
-    const data = await request<{ items: SourceGalleryItem[] }>(
-      `/api/source-gallery?query=${encodeURIComponent(query)}&sort=${encodeURIComponent(state.sort)}`,
-    );
+    const data = await request<SourceGalleryListResponse>(buildSourceGalleryRequestUrl(query, state));
     const items = query ? await searchGalleryItems(data.items, query) : data.items;
     if (refreshId !== state.refreshId) return;
     state.items = items;
+    state.filters = data.filters;
     syncSelectedPaths(state);
+    syncFilterControls(root, state);
     renderCards(grid, state);
     syncSelectionBar(root, state);
     syncSourceGalleryLayout(root);
@@ -669,6 +711,24 @@ function setStatus(root: HTMLElement, value: unknown): void {
   status.textContent = value instanceof Error ? value.message : String(value);
 }
 
+function buildSourceGalleryRequestUrl(query: string, state: PageState): string {
+  const params = new URLSearchParams();
+  if (query) {
+    params.set("query", query);
+  }
+  params.set("sort", state.sort);
+  if (state.selectedBuckets.length > 0) {
+    params.set("buckets", state.selectedBuckets.join(","));
+  }
+  if (state.selectedTags.length > 0) {
+    params.set("tags", state.selectedTags.join(","));
+  }
+  if (state.selectedLayers.length > 0) {
+    params.set("layers", state.selectedLayers.join(","));
+  }
+  return `/api/source-gallery?${params.toString()}`;
+}
+
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString();
 }
@@ -688,6 +748,50 @@ function syncSelectedPaths(state: PageState): void {
   for (const id of state.selectedIds) {
     syncSelectedPath(state, id);
   }
+}
+
+function syncFilterSelection(select: HTMLSelectElement, state: PageState): void {
+  const key = select.dataset.sourceGalleryFilter;
+  const value = select.value.trim();
+  if (key === "bucket") {
+    state.selectedBuckets = value ? [value] : [];
+    return;
+  }
+  if (key === "tag") {
+    state.selectedTags = value ? [value] : [];
+    return;
+  }
+  if (key === "layer") {
+    state.selectedLayers = value === "raw" || value === "source" ? [value] : [];
+  }
+}
+
+function syncFilterControls(root: HTMLElement, state: PageState): void {
+  syncFilterSelect(
+    root.querySelector<HTMLSelectElement>("[data-source-gallery-filter='bucket']"),
+    state.filters.buckets,
+    state.selectedBuckets[0],
+  );
+  syncFilterSelect(
+    root.querySelector<HTMLSelectElement>("[data-source-gallery-filter='tag']"),
+    state.filters.tags,
+    state.selectedTags[0],
+  );
+  syncFilterSelect(
+    root.querySelector<HTMLSelectElement>("[data-source-gallery-filter='layer']"),
+    state.filters.layers,
+    state.selectedLayers[0],
+  );
+}
+
+function syncFilterSelect(select: HTMLSelectElement | null, values: string[], selected?: string): void {
+  if (!select) return;
+  const currentValue = selected && values.includes(selected) ? selected : "";
+  select.innerHTML = [
+    `<option value="">${TEXT.all}</option>`,
+    ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
+  ].join("");
+  select.value = currentValue;
 }
 
 function resolveCardTitle(item: SourceGalleryItem): string {

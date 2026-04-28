@@ -15,6 +15,45 @@ describe("parseHash", () => {
     expect(parseHash("#/settings/llm")).toEqual({ name: "settings", params: { section: "llm" } });
   });
 
+  it("parses the standalone wiki route", () => {
+    expect(parseHash("#/wiki")).toEqual({ name: "wiki", params: {} });
+  });
+
+  it("separates wiki anchors from the page path", () => {
+    expect(parseHash("#/wiki/wiki%2F%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%2Ftest-chat.md#msg-2026-04-02-00-44")).toEqual({
+      name: "wiki",
+      params: { path: "wiki/聊天记录/test-chat.md" },
+      anchor: "msg-2026-04-02-00-44",
+    });
+  });
+
+  it("parses the project log route", () => {
+    expect(parseHash("#/project-log")).toEqual({ name: "project-log", params: {} });
+  });
+
+  it("parses the flash diary route", () => {
+    expect(parseHash("#/flash-diary")).toEqual({ name: "flash-diary", params: {} });
+  });
+
+  it("parses the sources route", () => {
+    expect(parseHash("#/sources")).toEqual({ name: "sources", params: {} });
+  });
+
+  it("maps the legacy publish route into app settings", () => {
+    expect(parseHash("#/publish")).toEqual({ name: "settings", params: { section: "app-config" } });
+  });
+
+  it("parses the workspace route", () => {
+    expect(parseHash("#/workspace")).toEqual({ name: "workspace", params: {} });
+  });
+
+  it("parses workspace child routes", () => {
+    expect(parseHash("#/workspace/toolbox/assets")).toEqual({
+      name: "workspace",
+      params: { section: "toolbox/assets" },
+    });
+  });
+
   it("falls back to the default route for empty or unknown hashes", () => {
     expect(parseHash("")).toEqual({ name: "chat", params: {} });
     expect(parseHash("#/nope")).toEqual({ name: "chat", params: {} });
@@ -50,6 +89,74 @@ describe("createRouter", () => {
     router.start();
     router.navigate({ name: "check" });
     expect(window.location.hash).toBe("#/check");
+  });
+
+  it("navigate() can open the wiki reader", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "wiki" });
+    expect(window.location.hash).toBe("#/wiki");
+  });
+
+  it("navigate() preserves wiki anchors", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({
+      name: "wiki",
+      params: { path: "wiki/聊天记录/test-chat.md" },
+      anchor: "msg-2026-04-02-00-44",
+    });
+    expect(window.location.hash).toBe("#/wiki/wiki%2F%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95%2Ftest-chat.md#msg-2026-04-02-00-44");
+  });
+
+  it("navigate() can open the project log", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "project-log" });
+    expect(window.location.hash).toBe("#/project-log");
+  });
+
+  it("navigate() can open flash diary", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "flash-diary" });
+    expect(window.location.hash).toBe("#/flash-diary");
+  });
+
+  it("navigate() can open sources", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "sources" });
+    expect(window.location.hash).toBe("#/sources");
+  });
+
+  it("navigate() can open app settings", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "settings", params: { section: "app-config" } });
+    expect(window.location.hash).toBe("#/settings/app-config");
+  });
+
+  it("navigate() can open workspace", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "workspace" });
+    expect(window.location.hash).toBe("#/workspace");
+  });
+
+  it("navigate() can open workspace child routes", () => {
+    const onChange = vi.fn();
+    const router = createRouter(onChange);
+    router.start();
+    router.navigate({ name: "workspace", params: { section: "toolbox/workflows" } });
+    expect(window.location.hash).toBe("#/workspace/toolbox/workflows");
   });
 });
 

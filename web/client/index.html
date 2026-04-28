@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLM Wiki</title>
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/assets/styles/tokens.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/base.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/components.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/feedback.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/graph.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/wiki-home-cover.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/wiki-launch.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles/shell.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/assets/styles.css?v=%BUILD_VERSION%" />
+    <link rel="stylesheet" href="/katex/katex.min.css" />
+  </head>
+  <body>
+    <div id="startup-shell">
+      <section id="welcome-screen" class="startup-screen">
+        <div class="startup-card startup-hero">
+          <div class="startup-logo"></div>
+          <h1 class="startup-title">从这里开启你的第二大脑！</h1>
+          <button id="welcome-next" class="btn btn-primary btn-large" type="button">点击下一页</button>
+        </div>
+      </section>
+
+      <section id="setup-screen" class="startup-screen hidden">
+        <div class="startup-card setup-card">
+          <div class="setup-header">
+            <div class="eyebrow">Initialization</div>
+            <h2>初始化配置</h2>
+            <p class="startup-copy">首次使用时，先配置你的目标仓库与同步源文件夹，然后由系统执行同步与编译。</p>
+          </div>
+
+          <div class="setup-grid">
+            <label class="field">
+              <span class="field-label">目标仓库</span>
+              <div class="field-row">
+                <input id="target-repo-path" type="text" autocomplete="off" />
+                <button id="choose-target-repo" class="btn btn-secondary" type="button">选择文件夹</button>
+              </div>
+            </label>
+
+            <div class="field">
+              <span class="field-label">同步源文件夹</span>
+              <div class="source-actions">
+                <button id="add-source-folders" class="btn btn-secondary" type="button">添加文件夹</button>
+              </div>
+              <ul id="source-folder-list" class="source-folder-list"></ul>
+            </div>
+          </div>
+
+          <div id="initialize-error" class="error-banner hidden"></div>
+
+          <div class="setup-footer">
+            <div id="initialize-status" class="status-copy"></div>
+            <button id="start-initialize" class="btn btn-primary btn-large" type="button" disabled>开始同步并编译</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="workspace-shell" class="hidden">
+      <aside id="shell-rail-slot"></aside>
+      <button
+        id="shell-browser-rail-toggle"
+        class="icon-btn shell-browser__rail-toggle hidden"
+        type="button"
+        aria-label="展开目录"
+        hidden
+      >
+        <span aria-hidden="true">&gt;</span>
+      </button>
+      <aside id="shell-browser-slot"></aside>
+      <div
+        id="shell-browser-handle"
+        class="panel-resize-handle panel-resize-handle--shell"
+        data-panel-handle="chat.browserWidth"
+        aria-hidden="true"
+      ></div>
+      <main id="shell-main-slot" class="shell-main">
+        <section id="chat-legacy">
+          <section class="panel conversation-panel">
+            <div id="chat-app"></div>
+          </section>
+        </section>
+      </main>
+      <div
+        id="shell-drawer-handle"
+        class="panel-resize-handle panel-resize-handle--shell"
+        data-panel-handle="chat.drawerWidth"
+        aria-hidden="true"
+      ></div>
+      <aside id="shell-drawer-slot"></aside>
+    </div>
+
+    <script type="module" src="/assets/main.js?v=%BUILD_VERSION%"></script>
+  </body>
+</html>

@@ -11,21 +11,12 @@
 import { readdir } from "fs/promises";
 import path from "path";
 import { slugify, atomicWrite, safeReadFile, parseFrontmatter } from "../utils/markdown.js";
-import { CONCEPTS_DIR, MOC_FILE } from "../utils/constants.js";
+import { CONCEPTS_DIR, MOC_FILE, PROCEDURES_DIR } from "../utils/constants.js";
 
-/** Minimum word count to generate an abbreviation alias. */
 const ABBREVIATION_MIN_WORDS = 3;
-
-/** Conjunctions that trigger a word-swap alias. */
 const SWAP_CONJUNCTIONS = [" and ", " or "];
+const UNCATEGORIZED_TAG = "\u672a\u5206\u7c7b";
 
-/**
- * Enrich a frontmatter object with Obsidian-specific tags and aliases.
- * Mutates the frontmatter object in place.
- * @param frontmatter - The frontmatter object to enrich.
- * @param conceptTitle - The human-readable concept title.
- * @param tags - Tags from extraction (may be empty).
- */
 export function addObsidianMeta(
   frontmatter: Record<string, unknown>,
   conceptTitle: string,
@@ -35,15 +26,6 @@ export function addObsidianMeta(
   frontmatter.aliases = generateAliases(conceptTitle);
 }
 
-/**
- * Generate deterministic aliases from a concept title.
- * Produces up to three alias variants:
- * - Slug form (e.g., "gradient-descent")
- * - Word-swap around conjunctions (e.g., "Optimization and Gradient Descent")
- * - Abbreviation from first letters for 3+ word titles (e.g., "RAG")
- * @param title - The concept title to derive aliases from.
- * @returns Array of aliases that differ from the original title.
- */
 function generateAliases(title: string): string[] {
   const aliases: string[] = [];
   const slug = slugify(title);
@@ -65,12 +47,6 @@ function generateAliases(title: string): string[] {
   return aliases;
 }
 
-/**
- * Generate a word-swap alias by reversing parts around a conjunction.
- * E.g., "Gradient Descent and Optimization" becomes "Optimization and Gradient Descent".
- * @param title - The concept title.
- * @returns The swapped alias, or null if no conjunction found.
- */
 function generateSwapAlias(title: string): string | null {
   for (const conjunction of SWAP_CONJUNCTIONS) {
     const index = title.toLowerCase().indexOf(conjunction);
@@ -84,12 +60,6 @@ function generateSwapAlias(title: string): string | null {
   return null;
 }
 
-/**
- * Generate an abbreviation from first letters of each word for titles with 3+ words.
- * E.g., "Retrieval Augmented Generation" becomes "RAG".
- * @param title - The concept title.
- * @returns The abbreviation, or null if title has fewer than 3 words.
- */
 function generateAbbreviation(title: string): string | null {
   const words = title.split(/\s+/);
   if (words.length < ABBREVIATION_MIN_WORDS) return null;
@@ -100,15 +70,12 @@ function generateAbbreviation(title: string): string | null {
   return abbreviation;
 }
 
-/**
- * Generate a Map of Content (MOC) page grouping concept pages by tag.
- * Reads all concept pages, extracts their tags from frontmatter, and writes
- * a structured MOC.md with sections per tag and an uncategorized section.
- * @param root - Project root directory.
- */
 export async function generateMOC(root: string): Promise<void> {
   const conceptsPath = path.join(root, CONCEPTS_DIR);
-  const pages = await loadConceptPages(conceptsPath);
+  const proceduresPath = path.join(root, PROCEDURES_DIR);
+  const conceptPages = await loadConceptPages(conceptsPath);
+  const procedurePages = await loadConceptPages(proceduresPath, ["\u7a0b\u5e8f\u8bb0\u5fc6"]);
+  const pages = [...conceptPages, ...procedurePages];
 
   const tagGroups = groupPagesByTag(pages);
   const content = buildMOCContent(tagGroups);
@@ -116,18 +83,12 @@ export async function generateMOC(root: string): Promise<void> {
   await atomicWrite(path.join(root, MOC_FILE), content);
 }
 
-/** Minimal page info needed for MOC generation. */
 interface PageInfo {
   title: string;
   tags: string[];
 }
 
-/**
- * Load all concept pages and extract their title and tags.
- * @param conceptsPath - Absolute path to the concepts directory.
- * @returns Array of page info objects.
- */
-async function loadConceptPages(conceptsPath: string): Promise<PageInfo[]> {
+async function loadConceptPages(conceptsPath: string, fallbackTags: string[] = []): Promise<PageInfo[]> {
   let files: string[];
   try {
     files = await readdir(conceptsPath);
@@ -146,24 +107,19 @@ async function loadConceptPages(conceptsPath: string): Promise<PageInfo[]> {
     if (meta.orphaned) continue;
 
     const title = typeof meta.title === "string" ? meta.title : file.replace(/\.md$/, "");
-    const tags = Array.isArray(meta.tags) ? (meta.tags as string[]) : [];
+    const tags = Array.isArray(meta.tags) ? (meta.tags as string[]) : fallbackTags;
     pages.push({ title, tags });
   }
 
   return pages;
 }
 
-/**
- * Group pages by their tags into a map. Pages with no tags go under "未分类".
- * @param pages - Array of page info objects.
- * @returns Map of tag name to array of page titles.
- */
 function groupPagesByTag(pages: PageInfo[]): Map<string, string[]> {
   const groups = new Map<string, string[]>();
 
   for (const page of pages) {
     if (page.tags.length === 0) {
-      appendToGroup(groups, "未分类", page.title);
+      appendToGroup(groups, UNCATEGORIZED_TAG, page.title);
       continue;
     }
 
@@ -175,7 +131,6 @@ function groupPagesByTag(pages: PageInfo[]): Map<string, string[]> {
   return groups;
 }
 
-/** Append a title to a group, creating the group if needed. */
 function appendToGroup(groups: Map<string, string[]>, key: string, title: string): void {
   const existing = groups.get(key);
   if (existing) {
@@ -185,18 +140,31 @@ function appendToGroup(groups: Map<string, string[]>, key: string, title: string
   }
 }
 
-/**
- * Build the MOC markdown content from grouped pages.
- * @param tagGroups - Map of tag name to array of page titles.
- * @returns Complete MOC markdown string.
- */
 function buildMOCContent(tagGroups: Map<string, string[]>): string {
-  const lines: string[] = ["# 内容地图", ""];
+  const totalTags = tagGroups.size;
+  const totalPages = [...tagGroups.values()].reduce((sum, titles) => sum + titles.length, 0);
+  const lines: string[] = [
+    "# \u5185\u5bb9\u5730\u56fe",
+    "",
+    "\u8fd9\u662f wiki \u7684\u4e3b\u9898\u5bfc\u822a\u9875\uff0c\u9002\u5408\u6309\u6807\u7b7e\u548c\u4e3b\u9898\u7ec4\u5757\u6d4f\u89c8\u5df2\u7ecf\u7f16\u8bd1\u597d\u7684\u6982\u5ff5\u9875\u3002",
+    "",
+    "## \u5e38\u7528\u5165\u53e3",
+    "",
+    "- [[index]]\uff1a\u770b\u5b8c\u6574\u603b\u7d22\u5f15",
+    "- [[\u6b22\u8fce]]\uff1a\u56de\u5230\u4ed3\u5e93\u9996\u9875",
+    "- [[00-\u4ed3\u5e93\u603b\u8bf4\u660e]]\uff1a\u67e5\u770b vault \u7ed3\u6784\u8bf4\u660e",
+    "",
+    "## \u4e3b\u9898\u5bfc\u822a",
+    "",
+    `- \u5f53\u524d\u6309 ${totalTags} \u4e2a\u6807\u7b7e\u7ec4\u7ec7\u4e3b\u9898\uff0c\u5171\u8986\u76d6 ${totalPages} \u4e2a\u6982\u5ff5\u6761\u76ee\u3002`,
+    "- \u5982\u679c\u4f60\u53ea\u60f3\u5feb\u901f\u627e\u6982\u5ff5\u540d\uff0c\u5148\u770b [[index]]\u3002",
+    "- \u5982\u679c\u4f60\u60f3\u6309\u4e3b\u9898\u6d4f\u89c8\uff0c\u4ece\u4e0b\u9762\u7684\u6807\u7b7e\u5206\u533a\u5f00\u59cb\u3002",
+    "",
+  ];
 
   const sortedTags = [...tagGroups.keys()].sort((a, b) => {
-    // "未分类" always goes last.
-    if (a === "未分类") return 1;
-    if (b === "未分类") return -1;
+    if (a === UNCATEGORIZED_TAG) return 1;
+    if (b === UNCATEGORIZED_TAG) return -1;
     return a.localeCompare(b);
   });
 

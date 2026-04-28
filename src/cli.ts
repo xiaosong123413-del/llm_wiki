@@ -16,6 +16,7 @@ import watchCommand from "./commands/watch.js";
 import lintCommand from "./commands/lint.js";
 import { DEFAULT_PROVIDER } from "./utils/constants.js";
 import { resolveAnthropicAuthFromEnv } from "./utils/claude-settings.js";
+import { readCloudflareServicesConfig } from "./utils/cloudflare-services-config.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -81,7 +82,7 @@ program
 
 program
   .command("lint")
-  .description("Run rule-based quality checks against the wiki")
+  .description("Run system checks against the wiki")
   .action(async () => {
     try {
       await lintCommand();
@@ -94,6 +95,7 @@ program
 /** API key env var required per provider. Null means no key needed. */
 const PROVIDER_KEY_VARS: Record<string, string | null> = {
   anthropic: "ANTHROPIC_API_KEY",
+  cloudflare: null,
   openai: "OPENAI_API_KEY",
   ollama: null,
   minimax: "MINIMAX_API_KEY",
@@ -109,6 +111,20 @@ function requireProvider(): void {
       console.error(
         `\x1b[31mError:\x1b[0m Anthropic credentials are required for the "anthropic" provider.\n` +
           `  Set one of: export ANTHROPIC_API_KEY=<your-key> OR export ANTHROPIC_AUTH_TOKEN=<your-token>`,
+      );
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (provider === "cloudflare") {
+    const cfg = readCloudflareServicesConfig();
+    const hasWorkerConfig = Boolean(cfg.workerUrl && cfg.remoteToken);
+    const hasDirectAiConfig = Boolean(cfg.accountId && cfg.apiToken);
+    if (!hasWorkerConfig && !hasDirectAiConfig) {
+      console.error(
+        `\x1b[31mError:\x1b[0m Cloudflare credentials are required for the "cloudflare" provider.\n` +
+          "  Set CLOUDFLARE_WORKER_URL and CLOUDFLARE_REMOTE_TOKEN, or CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN.",
       );
       process.exit(1);
     }

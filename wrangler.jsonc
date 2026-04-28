@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "llm-wiki",
+  "compatibility_date": "2026-04-23",
+  "pages_build_output_dir": "dist/static-wiki",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "llm-wiki-remote-brain",
+      "database_id": "628dc639-af60-4590-994d-8a943cba351d"
+    }
+  ]
+}

@@ -14,31 +14,53 @@ describe("generateIndex", () => {
   });
 
   it("includes concept pages in the index", async () => {
-    await writePage(path.join(root, "wiki/concepts"), "alpha", { title: "Alpha", summary: "First concept" }, "Body of Alpha.");
+    await writePage(
+      path.join(root, "wiki/concepts"),
+      "alpha",
+      { title: "Alpha", summary: "First concept" },
+      "Body of Alpha.",
+    );
     const index = await generateAndReadIndex(root);
 
+    expect(index).toContain("## \u5feb\u901f\u5165\u53e3");
+    expect(index).toContain("## \u4f7f\u7528\u5efa\u8bae");
     expect(index).toContain("[[Alpha]]");
     expect(index).toContain("First concept");
-    expect(index).toContain("## 概念");
+    expect(index).toContain("## \u6982\u5ff5");
   });
 
   it("includes saved query pages in a separate section", async () => {
-    await writePage(path.join(root, "wiki/concepts"), "alpha", { title: "Alpha", summary: "A concept" }, "Body of Alpha.");
-    await writePage(path.join(root, "wiki/queries"), "what-is-alpha", { title: "What is Alpha?", summary: "A query answer" }, "Body of What is Alpha?.");
+    await writePage(
+      path.join(root, "wiki/concepts"),
+      "alpha",
+      { title: "Alpha", summary: "A concept" },
+      "Body of Alpha.",
+    );
+    await writePage(
+      path.join(root, "wiki/queries"),
+      "what-is-alpha",
+      { title: "What is Alpha?", summary: "A query answer" },
+      "Body of What is Alpha?.",
+    );
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("## 概念");
+    expect(index).toContain("## \u6982\u5ff5");
     expect(index).toContain("[[Alpha]]");
-    expect(index).toContain("## 保存的查询");
+    expect(index).toContain("## \u4fdd\u5b58\u7684\u67e5\u8be2");
     expect(index).toContain("[[What is Alpha?]]");
   });
 
   it("omits Saved Queries section when no queries exist", async () => {
-    await writePage(path.join(root, "wiki/concepts"), "beta", { title: "Beta", summary: "A concept" }, "Body of Beta.");
+    await writePage(
+      path.join(root, "wiki/concepts"),
+      "beta",
+      { title: "Beta", summary: "A concept" },
+      "Body of Beta.",
+    );
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("## 概念");
-    expect(index).not.toContain("## 保存的查询");
+    expect(index).toContain("## \u6982\u5ff5");
+    expect(index).not.toContain("## \u4fdd\u5b58\u7684\u67e5\u8be2");
   });
 
   it("reports correct total page count", async () => {
@@ -47,17 +69,22 @@ describe("generateIndex", () => {
     await writePage(path.join(root, "wiki/queries"), "q", { title: "Q", summary: "s" }, "Body.");
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("3 页");
+    expect(index).toContain("3 \u9875");
   });
 
   it("handles empty wiki gracefully", async () => {
     const index = await generateAndReadIndex(root);
 
-    expect(index).toContain("0 页");
+    expect(index).toContain("0 \u9875");
   });
 
   it("excludes orphaned pages from the index", async () => {
-    await writePage(path.join(root, "wiki/concepts"), "alive", { title: "Alive", summary: "Still here" }, "Body of Alive.");
+    await writePage(
+      path.join(root, "wiki/concepts"),
+      "alive",
+      { title: "Alive", summary: "Still here" },
+      "Body of Alive.",
+    );
     const orphanFm = buildFrontmatter({ title: "Dead", summary: "Gone", orphaned: true });
     await writeFile(
       path.join(root, "wiki/concepts/dead.md"),
@@ -67,6 +94,6 @@ describe("generateIndex", () => {
 
     expect(index).toContain("[[Alive]]");
     expect(index).not.toContain("[[Dead]]");
-    expect(index).toContain("1 页");
+    expect(index).toContain("1 \u9875");
   });
 });

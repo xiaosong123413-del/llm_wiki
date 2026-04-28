@@ -14,7 +14,7 @@ import { LLMWIKI_DIR, STATE_FILE } from "./constants.js";
 import type { WikiState, SourceState } from "./types.js";
 
 function emptyState(): WikiState {
-  return { version: 1, indexHash: "", sources: {} };
+  return { version: 2, indexHash: "", sources: {} };
 }
 
 /** Read .llmwiki/state.json, recovering from corruption gracefully. */

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export interface WikiCommentRecord {
+interface WikiCommentRecord {
   id: string;
   path: string;
   quote: string;
@@ -124,23 +124,35 @@ function readStore(runtimeRoot: string): WikiCommentsStore {
 }
 
 function normalizeComment(entry: unknown): WikiCommentRecord[] {
-  if (!entry || typeof entry !== "object") {
+  if (!isWikiCommentRecord(entry)) {
     return [];
+  }
+  return [entry];
+}
+
+function isWikiCommentRecord(entry: unknown): entry is WikiCommentRecord {
+  if (!entry || typeof entry !== "object") {
+    return false;
   }
   const candidate = entry as Partial<WikiCommentRecord>;
-  if (
-    typeof candidate.id !== "string"
-    || typeof candidate.path !== "string"
-    || typeof candidate.quote !== "string"
-    || typeof candidate.text !== "string"
-    || typeof candidate.start !== "number"
-    || typeof candidate.end !== "number"
-    || typeof candidate.resolved !== "boolean"
-    || typeof candidate.createdAt !== "string"
-  ) {
-    return [];
-  }
-  return [candidate as WikiCommentRecord];
+  return [
+    isString(candidate.id),
+    isString(candidate.path),
+    isString(candidate.quote),
+    isString(candidate.text),
+    isNumber(candidate.start),
+    isNumber(candidate.end),
+    typeof candidate.resolved === "boolean",
+    isString(candidate.createdAt),
+  ].every(Boolean);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === "number";
 }
 
 function writeStore(runtimeRoot: string, store: WikiCommentsStore): void {

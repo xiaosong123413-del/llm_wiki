@@ -1,0 +1,118 @@
+<h2>源料库版式确认</h2>
+<p class="subtitle">基线：1920x1080，浏览器缩放 100%，顶栏固定，下面完整显示 3 x 2 共 6 张画册，不保留“新增剪藏 / 日记”卡。</p>
+
+<div class="mockup">
+  <div class="mockup-header">方案 1: 严格固定视口栅格</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-rows:88px 1fr;height:78vh;border-radius:24px;overflow:hidden;background:#f4f5fb;border:1px solid #dfe2f1;">
+      <div style="display:grid;align-items:center;gap:10px;padding:12px 18px;background:#ffffff;border-bottom:1px solid #e5e7f4;">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:16px;">
+          <div>
+            <div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#6558f5;text-transform:uppercase;">Sources Gallery</div>
+            <div style="font-size:28px;font-weight:800;line-height:1;color:#111827;">源料库</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;border:1px solid #e5e7f4;background:#ffffff;min-width:340px;color:#6b7280;">搜索 标题 / 正文 / URL / 标签</div>
+          <div style="display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;border:1px solid #e5e7f4;background:#ffffff;color:#111827;">排序 最近编辑</div>
+          <div style="display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;border:1px solid #e5e7f4;background:#ffffff;color:#9ca3af;">来源</div>
+          <div style="display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;border:1px solid #e5e7f4;background:#ffffff;color:#9ca3af;">标签</div>
+          <div style="display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;border:1px solid #e5e7f4;background:#ffffff;color:#9ca3af;">状态</div>
+        </div>
+      </div>
+
+      <div style="padding:16px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:16px;height:100%;">
+          <div style="display:grid;grid-template-rows:64% 1fr;border-radius:24px;border:1px solid #e5e7f4;background:#ffffff;box-shadow:0 10px 28px rgba(17,24,39,.06);overflow:hidden;">
+            <div style="position:relative;background:#0f1115;">
+              <div style="position:absolute;left:14px;top:14px;width:18px;height:18px;border:1px solid #c9cedc;border-radius:4px;background:#ffffff;"></div>
+              <div style="position:absolute;inset:18px;border-radius:20px;background:linear-gradient(180deg,#1b1b1b,#0a0a0a);"></div>
+              <div style="position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:24px;font-weight:800;color:#ffd7ea;text-align:center;line-height:1.35;">图片只展示局部<br/>但外框必须统一</div>
+            </div>
+            <div style="display:grid;grid-template-rows:auto auto auto 1fr auto;gap:10px;padding:16px 18px;">
+              <div style="font-size:16px;font-weight:800;line-height:1.35;color:#111827;">图片型卡片标题最多两行，超出截断</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="padding:6px 10px;border-radius:999px;background:#f1efff;color:#6558f5;font-size:12px;font-weight:700;">raw</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#f1efff;color:#6558f5;font-size:12px;font-weight:700;">image</span>
+              </div>
+              <div style="font-size:13px;color:#6b7280;">剪藏　小红书</div>
+              <div></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:13px;">
+                <span>2026/4/24</span>
+                <span>↗　↪</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-rows:64% 1fr;border-radius:24px;border:1px solid #e5e7f4;background:#ffffff;box-shadow:0 10px 28px rgba(17,24,39,.06);overflow:hidden;">
+            <div style="position:relative;background:radial-gradient(circle at 20% 20%,#dbe8ff,#5b67ff 58%,#4530cc 100%);">
+              <div style="position:absolute;left:14px;top:14px;width:18px;height:18px;border:1px solid #c9cedc;border-radius:4px;background:#ffffff;"></div>
+              <div style="position:absolute;inset:18px;border-radius:20px;background:linear-gradient(145deg,#dfe8ff,#4f59ff 58%,#5c22d8);display:grid;place-items:center;color:#ffffff;font-size:28px;font-weight:800;text-align:center;line-height:1.15;">封面图可以裁切<br/>但卡片不变高</div>
+            </div>
+            <div style="display:grid;grid-template-rows:auto auto auto 1fr auto;gap:10px;padding:16px 18px;">
+              <div style="font-size:16px;font-weight:800;line-height:1.35;color:#111827;">另一张图片型卡片，和左边严格同高同宽</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="padding:6px 10px;border-radius:999px;background:#f1efff;color:#6558f5;font-size:12px;font-weight:700;">raw</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#f1efff;color:#6558f5;font-size:12px;font-weight:700;">image</span>
+              </div>
+              <div style="font-size:13px;color:#6b7280;">剪藏　小红书</div>
+              <div></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:13px;">
+                <span>2026/4/24</span>
+                <span>↗　↪</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-rows:64% 1fr;border-radius:24px;border:1px solid #e5e7f4;background:#ffffff;box-shadow:0 10px 28px rgba(17,24,39,.06);overflow:hidden;">
+            <div style="position:relative;background:#ffffff;padding:26px 22px 0 22px;color:#374151;font-size:14px;line-height:1.9;">
+              <div style="position:absolute;left:14px;top:14px;width:18px;height:18px;border:1px solid #c9cedc;border-radius:4px;background:#ffffff;"></div>
+              文字型卡片不追求显示全文。<br/>它和图片卡一样，只占固定窗口。<br/>正文超出后直接裁切。<br/>底部标题、标签、日期、动作按钮都固定在同一位置。
+            </div>
+            <div style="display:grid;grid-template-rows:auto auto auto 1fr auto;gap:10px;padding:16px 18px;">
+              <div style="font-size:16px;font-weight:800;line-height:1.35;color:#111827;">文字型卡片也按同一高度系统压平</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="padding:6px 10px;border-radius:999px;background:#eef2ff;color:#6558f5;font-size:12px;font-weight:700;">raw</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#eef2ff;color:#6558f5;font-size:12px;font-weight:700;">video</span>
+              </div>
+              <div style="font-size:13px;color:#6b7280;">剪藏　抖音</div>
+              <div></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:13px;">
+                <span>2026/4/24</span>
+                <span>↗　↪</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;place-items:center;border-radius:24px;border:1px dashed #cdd4ea;background:rgba(255,255,255,.72);color:#94a3b8;font-weight:700;">第 4 张卡</div>
+          <div style="display:grid;place-items:center;border-radius:24px;border:1px dashed #cdd4ea;background:rgba(255,255,255,.72);color:#94a3b8;font-weight:700;">第 5 张卡</div>
+          <div style="display:grid;place-items:center;border-radius:24px;border:1px dashed #cdd4ea;background:rgba(255,255,255,.72);color:#94a3b8;font-weight:700;">第 6 张卡</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">本版硬规则</div>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>必须满足</h4>
+      <ul>
+        <li>删除“新增剪藏 / 日记”卡</li>
+        <li>顶栏固定且尽可能小</li>
+        <li>1920x1080 下一屏完整 6 卡</li>
+        <li>所有卡片外框严格一致</li>
+        <li>图片和正文都允许只展示局部</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>明确取舍</h4>
+      <ul>
+        <li>不追求一张卡里展示更多正文</li>
+        <li>不保留新增表单在画册流里</li>
+        <li>不做内容驱动高度</li>
+      </ul>
+    </div>
+  </div>
+</div>

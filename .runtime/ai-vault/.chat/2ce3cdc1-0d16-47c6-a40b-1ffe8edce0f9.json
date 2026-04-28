@@ -1,0 +1,28 @@
+{
+  "id": "2ce3cdc1-0d16-47c6-a40b-1ffe8edce0f9",
+  "title": "源料录入：庭审报告是律师内部沟通的结构化复盘工具，不是给法院的文书",
+  "createdAt": "2026-04-27T09:57:42.945Z",
+  "updatedAt": "2026-04-27T12:44:52.423Z",
+  "webSearchEnabled": false,
+  "searchScope": "local",
+  "appId": "wiki-general",
+  "articleRefs": [
+    "raw/剪藏/小红书/庭审报告框架参考.md"
+  ],
+  "messages": [
+    {
+      "id": "a40fa09b-e919-435f-b521-c07f3562c3ca",
+      "role": "user",
+      "content": "你能识别这个图片吗",
+      "createdAt": "2026-04-27T12:44:44.907Z",
+      "articleRefs": []
+    },
+    {
+      "id": "7f0e8bc0-bcbb-405e-8132-f0b25cf68ccd",
+      "role": "assistant",
+      "content": "可以，我可以帮你识别图片内容。  \n\n**基于你当前这页的本地内容**：我现在只看到有 4 张图片的占位（`img/66680bb6000000000d00cc0b-1.jpg` 到 `-4.jpg`），还没有看到图片本身的像素内容。  \n\n你把图片直接发上来（或贴图）后，我可以帮你做这些事：  \n1. 识别图片里文字（OCR）  \n2. 提取结构（如“庭审报告框架”条目）  \n3. 总结重点并转成可复用模板（Markdown）",
+      "createdAt": "2026-04-27T12:44:52.423Z",
+      "articleRefs": []
+    }
+  ]
+}

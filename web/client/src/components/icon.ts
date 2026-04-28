@@ -38,10 +38,36 @@ const ICONS: Record<string, string> = {
     '<circle cx="12" cy="12" r="3"/>',
   "search":
     '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  "plus":
+    '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  "chevron-left":
+    '<path d="m15 18-6-6 6-6"/>',
+  "chevron-right":
+    '<path d="m9 18 6-6-6-6"/>',
+  "list-checks":
+    '<path d="M3 17h6"/><path d="M3 12h6"/><path d="M3 7h6"/><path d="m13 6 2 2 4-4"/><path d="m13 11 2 2 4-4"/><path d="m13 16 2 2 4-4"/>',
+  "copy":
+    '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  "globe":
+    '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  cloud:
+    '<path d="M20 17.5a4.5 4.5 0 0 0-1.5-8.74A6 6 0 0 0 7.1 7.6 4 4 0 0 0 6 15h13a3 3 0 0 0 1-7"/>',
+  "wikipedia-w":
+    '<text x="12" y="17" text-anchor="middle" font-family="Georgia, serif" font-size="15" font-weight="700" fill="currentColor" stroke="none">W</text>' +
+    '<circle cx="12" cy="12" r="10"/>',
+  "book-open-text":
+    '<path d="M12 7v14"/><path d="M3 18a2 2 0 0 1 2-2h7"/><path d="M21 18a2 2 0 0 0-2-2h-7"/><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4H12v14H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M19 6.5A2.5 2.5 0 0 0 16.5 4H12v14h4.5A2.5 2.5 0 0 1 19 20.5z"/><path d="M8 8h2"/><path d="M8 11h2"/>',
+  "folder-open":
+    '<path d="m6 14 2-8h12a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8L14 6"/>' +
+    '<path d="M2 14h20"/>',
+  archive:
+    '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z"/><path d="M10 12h4"/>',
   "hammer":
     '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/>' +
     '<path d="m18 15 4-4"/>' +
     '<path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
+  "x":
+    '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
 };
 
 export const ICON_NAMES: readonly string[] = Object.keys(ICONS);

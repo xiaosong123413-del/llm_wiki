@@ -28,6 +28,11 @@ describe("sources gallery page", () => {
       const url = String(input);
       if (url.includes("/api/source-gallery?")) {
         return ok({
+          filters: {
+            buckets: ["sources_full", "剪藏", "闪念日记"],
+            tags: ["AI", "Archive", "收藏"],
+            layers: ["raw", "source"],
+          },
           items: [
             {
               id: "raw-1",
@@ -206,6 +211,17 @@ describe("sources gallery page", () => {
     expect(cells.length).toBe(2);
   });
 
+  it("renders live source, tag, and status filters from the source gallery payload", async () => {
+    const page = renderTestSourcesPage();
+    await flush();
+    await flush();
+
+    expect(page.querySelector("[data-source-gallery-filter='bucket']")).toBeTruthy();
+    expect(page.querySelector("[data-source-gallery-filter='bucket'] option[value='剪藏']")).toBeTruthy();
+    expect(page.querySelector("[data-source-gallery-filter='tag'] option[value='Archive']")).toBeTruthy();
+    expect(page.querySelector("[data-source-gallery-filter='layer'] option[value='source']")).toBeTruthy();
+  });
+
   it("shows the selection toolbar after choosing cards", async () => {
     const page = renderTestSourcesPage();
     await flush();
@@ -249,6 +265,11 @@ describe("sources gallery page", () => {
       }
       if (url.includes("/api/source-gallery")) {
         return ok({
+          filters: {
+            buckets: ["sources_full", "剪藏", "闪念日记"],
+            tags: ["AI", "Archive", "收藏"],
+            layers: ["raw", "source"],
+          },
           items: [
             {
               id: "raw-1",
@@ -297,6 +318,36 @@ describe("sources gallery page", () => {
     expect(page.textContent).not.toContain("Raw clipping item");
   });
 
+  it("sends selected bucket, tag, and layer filters back to the source gallery API", async () => {
+    const fetchMock = vi.mocked(fetch);
+    const page = renderTestSourcesPage();
+    await flush();
+    await flush();
+
+    const bucket = page.querySelector<HTMLSelectElement>("[data-source-gallery-filter='bucket']");
+    const tag = page.querySelector<HTMLSelectElement>("[data-source-gallery-filter='tag']");
+    const layer = page.querySelector<HTMLSelectElement>("[data-source-gallery-filter='layer']");
+
+    bucket!.value = "sources_full";
+    bucket!.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    await flush();
+
+    tag!.value = "Archive";
+    tag!.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    await flush();
+
+    layer!.value = "source";
+    layer!.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+    await flush();
+
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("buckets=sources_full"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("tags=Archive"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("layers=source"))).toBe(true);
+  });
+
   it("keeps selected article refs for chat even after filtering hides the selected card", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
@@ -324,6 +375,11 @@ describe("sources gallery page", () => {
       }
       if (url.includes("/api/source-gallery?")) {
         return ok({
+          filters: {
+            buckets: ["sources_full", "剪藏", "闪念日记"],
+            tags: ["AI", "Archive", "收藏"],
+            layers: ["raw", "source"],
+          },
           items: [
             {
               id: "raw-1",
@@ -433,6 +489,11 @@ describe("sources gallery page", () => {
       const url = String(input);
       if (url.includes("/api/source-gallery?")) {
         return ok({
+          filters: {
+            buckets: ["sources_full"],
+            tags: ["Archive"],
+            layers: ["source"],
+          },
           items: [
             {
               id: "source-1",
@@ -502,6 +563,11 @@ describe("sources gallery page", () => {
       const url = String(input);
       if (url.includes("/api/source-gallery?")) {
         return ok({
+          filters: {
+            buckets: ["sources_full"],
+            tags: ["Archive"],
+            layers: ["source"],
+          },
           items: [
             {
               id: "source-1'boom",
@@ -624,6 +690,11 @@ describe("sources gallery page", () => {
       }
       if (url.includes("/api/source-gallery?")) {
         return ok({
+          filters: {
+            buckets: ["sources_full"],
+            tags: ["Archive"],
+            layers: ["source"],
+          },
           items: [
             {
               id: "source-1",

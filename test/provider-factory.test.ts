@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { getProvider } from "../src/utils/provider.js";
 import { AnthropicProvider } from "../src/providers/anthropic.js";
+import { GeminiProvider } from "../src/providers/gemini.js";
 import { OpenAIProvider } from "../src/providers/openai.js";
 import { OllamaProvider } from "../src/providers/ollama.js";
 import { MiniMaxProvider } from "../src/providers/minimax.js";
@@ -48,6 +49,7 @@ describe("getProvider", () => {
   afterEach(() => {
     delete process.env.LLMWIKI_PROVIDER;
     delete process.env.LLMWIKI_MODEL;
+    delete process.env.LLMWIKI_OPENAI_BASE_URL;
     delete process.env.ANTHROPIC_BASE_URL;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_AUTH_TOKEN;
@@ -106,9 +108,10 @@ describe("getProvider", () => {
     expect(provider).toBeInstanceOf(OllamaProvider);
   });
 
-  it("throws for unknown provider", () => {
+  it("returns GeminiProvider when LLMWIKI_PROVIDER=gemini", () => {
     process.env.LLMWIKI_PROVIDER = "gemini";
-    expect(() => getProvider()).toThrow('Unknown provider "gemini"');
+    const provider = getProvider();
+    expect(provider).toBeInstanceOf(GeminiProvider);
   });
 
   it("returns MiniMaxProvider when LLMWIKI_PROVIDER=minimax", () => {
@@ -132,6 +135,19 @@ describe("getProvider", () => {
     // The model is stored as a protected field; verify it was accepted
     // by checking the provider was created without throwing
     expect(provider).toBeDefined();
+  });
+
+  it("uses configured OpenAI-compatible base url for openai provider", () => {
+    process.env.LLMWIKI_PROVIDER = "openai";
+    process.env.LLMWIKI_MODEL = "gpt-5-codex";
+    process.env.LLMWIKI_OPENAI_BASE_URL = "http://127.0.0.1:8317/v1";
+    process.env.OPENAI_API_KEY = "wiki-client-key";
+
+    const provider = getProvider();
+
+    expect(provider).toBeInstanceOf(OpenAIProvider);
+    expect(Reflect.get(Reflect.get(provider, "client"), "baseURL")).toBe("http://127.0.0.1:8317/v1/");
+    expect(Reflect.get(provider, "model")).toBe("gpt-5-codex");
   });
 
   it("ignores anthropic base url for non-anthropic providers", () => {

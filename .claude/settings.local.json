@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\llm-wiki-compiler-main\" log --oneline -10 -- gui/LlmWikiGui/MainForm.Layout.cs gui/LlmWikiGui/MainForm.State.cs gui/LlmWikiGui/MainForm.ChatPage.cs)",
+      "Bash(git add *)",
+      "Bash(git -c commit.gpgsign=false commit -m \"docs: add web ui redesign spec\")",
+      "Bash(git -c commit.gpgsign=false commit -m \"docs: add web ui redesign phase 1 implementation plan\")",
+      "Bash(npx vitest *)",
+      "Bash(git -c commit.gpgsign=false commit -m \"feat\\(web\\): add inlined lucide icon renderer\")",
+      "Bash(git -c commit.gpgsign=false commit -m \"feat\\(web\\): add hash router\")"
+    ]
+  }
+}

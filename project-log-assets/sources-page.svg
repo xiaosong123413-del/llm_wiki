@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" role="img" aria-label="源料库页界面">
+  <rect width="1120" height="560" rx="28" fill="#F7F4EE"/>
+  <rect x="0" y="0" width="78" height="560" fill="#FBFAF6"/>
+  <rect x="24" y="84" width="30" height="30" rx="10" fill="#D9D3C3"/>
+  <rect x="24" y="130" width="30" height="30" rx="10" fill="#D9D3C3"/>
+  <rect x="24" y="176" width="30" height="30" rx="10" fill="#C55B3C"/>
+  <rect x="24" y="222" width="30" height="30" rx="10" fill="#D9D3C3"/>
+  <text x="110" y="78" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="18" fill="#9A4A2B" font-weight="700">SOURCE GALLERY</text>
+  <rect x="108" y="104" width="968" height="72" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+  <rect x="132" y="126" width="274" height="30" rx="15" fill="#F6EFE4" stroke="#E7DECF"/>
+  <text x="150" y="146" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="14" fill="#8E8475">搜索标题 / 正文 / URL / 标签</text>
+  <rect x="426" y="126" width="124" height="30" rx="15" fill="#FFFDFC" stroke="#E7DECF"/>
+  <text x="450" y="146" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="14" fill="#5F564B">排序</text>
+  <rect x="570" y="126" width="138" height="30" rx="15" fill="#FFFDFC" stroke="#E7DECF"/>
+  <text x="594" y="146" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="14" fill="#5F564B">来源</text>
+  <rect x="728" y="126" width="138" height="30" rx="15" fill="#FFFDFC" stroke="#E7DECF"/>
+  <text x="752" y="146" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="14" fill="#5F564B">标签</text>
+  <rect x="886" y="126" width="138" height="30" rx="15" fill="#FFFDFC" stroke="#E7DECF"/>
+  <text x="910" y="146" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="14" fill="#5F564B">状态</text>
+  <text x="108" y="208" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="15" fill="#7D7265">筛选区固定，画册区独立滚动；来源 / 标签 / 状态都由后端动态返回。</text>
+
+  <g transform="translate(108 232)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#EADFD0"/>
+    <rect x="16" y="92" width="84" height="10" rx="5" fill="#C55B3C" opacity="0.88"/>
+    <rect x="108" y="92" width="62" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="178" y="92" width="52" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="90" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+
+  <g transform="translate(434 232)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#DCCDB6"/>
+    <rect x="16" y="92" width="98" height="10" rx="5" fill="#5F564B" opacity="0.88"/>
+    <rect x="122" y="92" width="74" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="204" y="92" width="56" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="84" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+
+  <g transform="translate(760 232)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#F1ECE3"/>
+    <rect x="28" y="30" width="244" height="8" rx="4" fill="#B5AA9C"/>
+    <rect x="28" y="44" width="226" height="8" rx="4" fill="#B5AA9C"/>
+    <rect x="28" y="58" width="192" height="8" rx="4" fill="#B5AA9C"/>
+    <rect x="16" y="92" width="78" height="10" rx="5" fill="#5F564B" opacity="0.88"/>
+    <rect x="102" y="92" width="88" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="198" y="92" width="60" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="74" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+
+  <g transform="translate(108 384)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#F1ECE3"/>
+    <rect x="28" y="32" width="236" height="8" rx="4" fill="#B7AB9C"/>
+    <rect x="28" y="48" width="212" height="8" rx="4" fill="#B7AB9C"/>
+    <rect x="28" y="64" width="180" height="8" rx="4" fill="#B7AB9C"/>
+    <rect x="16" y="92" width="92" height="10" rx="5" fill="#5F564B" opacity="0.88"/>
+    <rect x="116" y="92" width="66" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="190" y="92" width="52" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="86" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+
+  <g transform="translate(434 384)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#EADFD0"/>
+    <rect x="16" y="92" width="88" height="10" rx="5" fill="#C55B3C" opacity="0.88"/>
+    <rect x="112" y="92" width="54" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="174" y="92" width="72" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="94" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+
+  <g transform="translate(760 384)">
+    <rect width="300" height="132" rx="24" fill="#FFFDFC" stroke="#E7DECF"/>
+    <rect x="16" y="16" width="268" height="60" rx="18" fill="#DCCDB6"/>
+    <rect x="16" y="92" width="102" height="10" rx="5" fill="#5F564B" opacity="0.88"/>
+    <rect x="126" y="92" width="64" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="198" y="92" width="58" height="10" rx="5" fill="#D8D0C5"/>
+    <rect x="16" y="112" width="88" height="8" rx="4" fill="#E3DBCF"/>
+    <rect x="234" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+    <rect x="260" y="104" width="20" height="20" rx="10" fill="#F0E8DD"/>
+  </g>
+</svg>

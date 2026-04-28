@@ -1,0 +1,56 @@
+{
+  "b1": {
+    "wiki-procedures-cache-recovery": 2
+  },
+  "b2": {
+    "wiki-concepts-redis-cache": 2,
+    "sources-redis-note": 1
+  },
+  "b3": {
+    "wiki-procedures-cache-warmup": 2,
+    "wiki-concepts-redis-cache": 1,
+    "wiki-episodes-cache-retro": 1
+  },
+  "b4": {
+    "wiki-episodes-redis-outage": 2,
+    "wiki-procedures-cache-recovery": 1
+  },
+  "b5": {
+    "wiki-concepts-incident-playbook": 2,
+    "sources-incident-playbook": 1,
+    "wiki-procedures-incident-triage": 1
+  },
+  "b6": {
+    "wiki-procedures-incident-triage": 2,
+    "wiki-concepts-incident-playbook": 1,
+    "sources-incident-playbook": 1
+  },
+  "b7": {
+    "wiki-procedures-source-audit": 2,
+    "sources-source-audit": 2,
+    "wiki-concepts-source-ingest": 1
+  },
+  "b8": {
+    "wiki-concepts-vector-search": 2,
+    "sources-vector-eval": 2
+  },
+  "b9": {
+    "wiki-episodes-redis-outage": 2,
+    "wiki-procedures-cache-recovery": 2,
+    "wiki-concepts-incident-playbook": 1
+  },
+  "b10": {
+    "wiki-concepts-source-ingest": 2,
+    "wiki-procedures-source-audit": 1,
+    "sources-source-audit": 1
+  },
+  "b11": {
+    "wiki-episodes-cache-retro": 2,
+    "wiki-procedures-cache-warmup": 1
+  },
+  "b12": {
+    "wiki-procedures-incident-triage": 2,
+    "wiki-concepts-incident-playbook": 1,
+    "sources-incident-playbook": 1
+  }
+}

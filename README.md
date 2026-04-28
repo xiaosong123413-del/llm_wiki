@@ -137,6 +137,24 @@ wiki/
 
 Obsidian-compatible. `[[wikilinks]]` resolve to concept titles.
 
+## Integrated Companion Tooling
+
+This repo also vendors the companion modules from `llm-wiki-skill` so the compiler can evolve toward a full feedback-driven wiki workflow:
+
+- `llm-wiki/` - skill documents, references, and helper Python scripts
+- `audit-shared/` - shared audit schema and anchor logic
+- `web/` - local wiki preview + audit feedback server
+- `plugins/obsidian-audit/` - Obsidian audit plugin
+
+Convenience commands from the project root:
+
+```bash
+npm run audit-shared:build
+npm run web:build
+npm run web:start -- --wiki "/path/to/wiki-root" --port 4175
+npm run obsidian-audit:build
+```
+
 ## Demo
 
 Try it on any article or document:

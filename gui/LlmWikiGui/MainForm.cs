@@ -3,29 +3,121 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 namespace LlmWikiGui
 {
-    public sealed class MainForm : Form
+    public sealed partial class MainForm : Form
     {
+        private const string QueryResultStartMarker = "<<<LLMWIKI_QUERY_RESULT_START>>>";
+        private const string QueryResultEndMarker = "<<<LLMWIKI_QUERY_RESULT_END>>>";
+        private const string LegacyOneClickLabel = "\u4e00\u952e\u540c\u6b65\u7f16\u8bd1";
+        private const string LegacyQueryLabel = "\u95ee\u9898\u67e5\u8be2";
+        private const string LegacyQueryResultLabel = "\u67e5\u8be2\u7ed3\u679c";
+        private const string LegacyPendingItemsLabel = "\u5f85\u5904\u7406\u4e8b\u9879";
+        private const string LegacyRuntimeLogLabel = "\u8fd0\u884c\u65e5\u5fd7";
+        private const string LegacyWatchLabel = "\u5f00\u59cb\u76d1\u542c\u5e76\u81ea\u52a8\u7f16\u8bd1";
+        private const string LegacyStartQueryLabel = "\u5f00\u59cb\u67e5\u8be2";
+        private const string LegacyQuerySaveLabel = "\u67e5\u8be2\u5e76\u4fdd\u5b58\u7ed3\u679c";
+        private const string TitleBarMinimizeIcon = "\uE921";
+        private const string TitleBarMaximizeIcon = "\uE922";
+        private const string TitleBarRestoreIcon = "\uE923";
+        private const string TitleBarCloseIcon = "\uE8BB";
+        private const string WebViewerUrl = "http://127.0.0.1:4175/";
+
         private readonly string projectRoot;
         private readonly string configPath;
+        private readonly string panelStatePath;
+        private readonly StringBuilder collectedQueryResult;
         private SyncCompileConfig config;
+        private GuiPanelState panelState;
+
+        private TableLayoutPanel mainSurface;
+        private TitleBarPanel titleBarPanel;
+        private ThemedSplitContainer railSplit;
+        private ThemedSplitContainer browserSplit;
+        private ThemedSplitContainer conversationSplit;
+        private ThemedSplitContainer chatPreviewSplit;
+        private Panel contentHost;
+        private Panel fileBrowserPanel;
+        private Panel chatViewPanel;
+        private Panel reviewViewPanel;
+        private Panel settingsViewPanel;
+        private Panel activityLogViewPanel;
+        private Panel welcomePagePanel;
+        private Panel initializePagePanel;
+        private Panel shellPagePanel;
+
+        private ThemedTreeView fileTreeView;
+        private TextBox fileSearchTextBox;
         private TextBox targetVaultTextBox;
         private ListBox sourceFoldersListBox;
+        private TextBox queryTextBox;
+        private TextBox queryResultTextBox;
+        private RichTextBox previewTextBox;
+        private TextBox systemCheckDecisionTextBox;
+        private TextBox llmEndpointTextBox;
+        private TextBox llmKeyTextBox;
+        private TextBox llmModelTextBox;
+        private TextBox searchEndpointTextBox;
+        private TextBox searchKeyTextBox;
+        private TextBox searchModelTextBox;
+        private TextBox vectorEndpointTextBox;
+        private TextBox vectorKeyTextBox;
+        private TextBox vectorModelTextBox;
         private TextBox logTextBox;
-        private Button startButton;
-        private Process runningProcess;
+
+        private ListBox conversationListBox;
+        private Label emptyConversationLabel;
+        private Panel chatEmptyStatePanel;
+        private Label currentContextLabel;
+        private Label previewPathLabel;
+        private Label initializeTargetPreviewLabel;
+        private Label initializeSourceSummaryLabel;
+        private FlowLayoutPanel messageFlowPanel;
+        private ToolTip navToolTip;
+
+        private Button startCompileButton;
+        private Button watchButton;
+        private Button queryButton;
+        private Button querySaveButton;
+        private Button lintButton;
+        private Button previewCloseButton;
+        private Button wikiLayerButton;
+        private Button rawLayerButton;
+        private Button selectModeButton;
+        private Button navChatButton;
+        private Button navCheckButton;
+        private Button navSyncButton;
+        private Button navReviewButton;
+        private Button navLogButton;
+        private Button navWebButton;
+        private Button navSettingsButton;
+        private Button titleBarMinimizeButton;
+        private Button titleBarMaximizeButton;
+        private Button titleBarCloseButton;
+
+        private System.Diagnostics.Process runningProcess;
+        private Process webViewerProcess;
+        private bool collectingQueryResult;
+        private bool selectionMode;
+        private bool rawLayerSelected;
+        private bool panelStateApplied;
+        private string currentPreviewPath;
+        private string currentView;
+        private int conversationCount;
 
         public MainForm()
         {
             projectRoot = ResolveProjectRoot();
             configPath = Path.Combine(projectRoot, "sync-compile-config.json");
+            panelStatePath = Path.Combine(projectRoot, "gui-panel-state.json");
             config = LoadConfig();
+            panelState = LoadPanelState();
+            collectedQueryResult = new StringBuilder();
             InitializeComponent();
             BindConfigToUi();
         }
@@ -86,12 +178,83 @@ namespace LlmWikiGui
                     config.source_folders.Add(value);
                 }
             }
-            config.ApplyDefaults(projectRoot);
 
+            config.ApplyDefaults(projectRoot);
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             string json = serializer.Serialize(config);
             File.WriteAllText(configPath, PrettyJson(json), new UTF8Encoding(false));
             AppendLog("\u914d\u7f6e\u5df2\u4fdd\u5b58\uff1a" + configPath);
+        }
+
+        private void SaveEnvSettings()
+        {
+            Dictionary<string, string> values = new Dictionary<string, string>();
+            values["ANTHROPIC_BASE_URL"] = GetTextBoxValue(llmEndpointTextBox);
+            values["ANTHROPIC_API_KEY"] = GetTextBoxValue(llmKeyTextBox);
+            values["LLMWIKI_MODEL"] = GetTextBoxValue(llmModelTextBox);
+            values["SEARCH_API_URL"] = GetTextBoxValue(searchEndpointTextBox);
+            values["SEARCH_API_KEY"] = GetTextBoxValue(searchKeyTextBox);
+            values["SEARCH_MODEL"] = GetTextBoxValue(searchModelTextBox);
+            values["VECTOR_API_URL"] = GetTextBoxValue(vectorEndpointTextBox);
+            values["VECTOR_API_KEY"] = GetTextBoxValue(vectorKeyTextBox);
+            values["VECTOR_MODEL"] = GetTextBoxValue(vectorModelTextBox);
+
+            string envPath = Path.Combine(projectRoot, ".env");
+            WriteEnvValues(envPath, values);
+            AppendLog("API \u914d\u7f6e\u5df2\u4fdd\u5b58\uff1a" + envPath);
+        }
+
+        private static string GetTextBoxValue(TextBox textBox)
+        {
+            return textBox == null ? string.Empty : textBox.Text.Trim();
+        }
+
+        private static void WriteEnvValues(string envPath, Dictionary<string, string> values)
+        {
+            string[] orderedKeys = new string[]
+            {
+                "ANTHROPIC_BASE_URL",
+                "ANTHROPIC_API_KEY",
+                "LLMWIKI_MODEL",
+                "SEARCH_API_URL",
+                "SEARCH_API_KEY",
+                "SEARCH_MODEL",
+                "VECTOR_API_URL",
+                "VECTOR_API_KEY",
+                "VECTOR_MODEL"
+            };
+
+            List<string> lines = File.Exists(envPath)
+                ? new List<string>(File.ReadAllLines(envPath, Encoding.UTF8))
+                : new List<string>();
+            HashSet<string> remaining = new HashSet<string>(values.Keys);
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string line = lines[i];
+                int separator = line.IndexOf('=');
+                if (separator <= 0)
+                {
+                    continue;
+                }
+
+                string key = line.Substring(0, separator);
+                if (values.ContainsKey(key))
+                {
+                    lines[i] = key + "=" + values[key];
+                    remaining.Remove(key);
+                }
+            }
+
+            foreach (string key in orderedKeys)
+            {
+                if (remaining.Contains(key))
+                {
+                    lines.Add(key + "=" + values[key]);
+                }
+            }
+
+            File.WriteAllLines(envPath, lines.ToArray(), new UTF8Encoding(false));
         }
 
         private static string PrettyJson(string compactJson)
@@ -143,290 +306,111 @@ namespace LlmWikiGui
             return output.ToString();
         }
 
+        private static string ReadTextFileSafe(string path)
+        {
+            return File.ReadAllText(path, Encoding.UTF8);
+        }
+
+        private void UpdateMaximizedBounds()
+        {
+            MaximizedBounds = Screen.FromHandle(Handle).WorkingArea;
+        }
+
+        internal void PrepareForWindowStateChange()
+        {
+            UpdateMaximizedBounds();
+        }
+
+        private bool ShouldShowWelcomeFlow()
+        {
+            return !File.Exists(configPath) || config.source_folders == null || config.source_folders.Count == 0;
+        }
+
+        private void MinimizeWindow(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Minimized;
+            UpdateTitleBarButtonsForWindowState();
+        }
+
+        private void ToggleMaximizeWindow(object sender, EventArgs e)
+        {
+            UpdateMaximizedBounds();
+            WindowState = WindowState == FormWindowState.Maximized
+                ? FormWindowState.Normal
+                : FormWindowState.Maximized;
+            UpdateTitleBarButtonsForWindowState();
+        }
+
+        private void CloseWindow(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void UpdateTitleBarButtonsForWindowState()
+        {
+            if (titleBarMinimizeButton != null)
+            {
+                titleBarMinimizeButton.Text = TitleBarMinimizeIcon;
+            }
+
+            if (titleBarMaximizeButton != null)
+            {
+                titleBarMaximizeButton.Text = WindowState == FormWindowState.Maximized
+                    ? TitleBarRestoreIcon
+                    : TitleBarMaximizeIcon;
+            }
+
+            if (titleBarCloseButton != null)
+            {
+                titleBarCloseButton.Text = TitleBarCloseIcon;
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int wmNchittest = 0x0084;
+            const int htClient = 1;
+            const int htLeft = 10;
+            const int htRight = 11;
+            const int htTop = 12;
+            const int htTopLeft = 13;
+            const int htTopRight = 14;
+            const int htBottom = 15;
+            const int htBottomLeft = 16;
+            const int htBottomRight = 17;
+            const int resizeBorder = 6;
+
+            base.WndProc(ref m);
+
+            if (m.Msg != wmNchittest || WindowState == FormWindowState.Maximized)
+            {
+                return;
+            }
+
+            if ((int)m.Result != htClient)
+            {
+                return;
+            }
+
+            Point cursor = PointToClient(Cursor.Position);
+            bool left = cursor.X <= resizeBorder;
+            bool right = cursor.X >= Width - resizeBorder;
+            bool top = cursor.Y <= resizeBorder;
+            bool bottom = cursor.Y >= Height - resizeBorder;
+
+            if (left && top) m.Result = (IntPtr)htTopLeft;
+            else if (left && bottom) m.Result = (IntPtr)htBottomLeft;
+            else if (right && top) m.Result = (IntPtr)htTopRight;
+            else if (right && bottom) m.Result = (IntPtr)htBottomRight;
+            else if (left) m.Result = (IntPtr)htLeft;
+            else if (right) m.Result = (IntPtr)htRight;
+            else if (top) m.Result = (IntPtr)htTop;
+            else if (bottom) m.Result = (IntPtr)htBottom;
+        }
+
         private void InitializeComponent()
         {
-            Text = "LLM Wiki \u7f16\u8bd1\u9762\u677f";
-            Width = 900;
-            Height = 680;
-            MinimumSize = new Size(760, 560);
-            Font = new Font("Microsoft YaHei UI", 9F);
-            StartPosition = FormStartPosition.CenterScreen;
-
-            TableLayoutPanel layout = new TableLayoutPanel();
-            layout.Dock = DockStyle.Fill;
-            layout.ColumnCount = 1;
-            layout.RowCount = 7;
-            layout.Padding = new Padding(16);
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-            Label titleLabel = new Label();
-            titleLabel.Text = "LLM Wiki \u4e00\u952e\u540c\u6b65\u7f16\u8bd1";
-            titleLabel.Font = new Font(Font.FontFamily, 16F, FontStyle.Bold);
-            titleLabel.AutoSize = true;
-            titleLabel.Margin = new Padding(0, 0, 0, 12);
-            layout.Controls.Add(titleLabel, 0, 0);
-
-            targetVaultTextBox = new TextBox();
-            targetVaultTextBox.Dock = DockStyle.Top;
-            targetVaultTextBox.Margin = new Padding(0, 0, 0, 12);
-            layout.Controls.Add(WrapWithLabel("\u76ee\u6807\u4ed3\u5e93", targetVaultTextBox), 0, 1);
-
-            sourceFoldersListBox = new ListBox();
-            sourceFoldersListBox.Dock = DockStyle.Fill;
-            sourceFoldersListBox.HorizontalScrollbar = true;
-            layout.Controls.Add(WrapWithLabel("\u540c\u6b65\u6e90\u6587\u4ef6\u5939\uff08\u53ef\u6dfb\u52a0\u591a\u4e2a\uff09", sourceFoldersListBox), 0, 2);
-
-            FlowLayoutPanel sourceButtons = new FlowLayoutPanel();
-            sourceButtons.AutoSize = true;
-            sourceButtons.Margin = new Padding(0, 8, 0, 12);
-            sourceButtons.Controls.Add(CreateButton("\u6dfb\u52a0\u6e90\u6587\u4ef6\u5939", OnAddSourceFolder));
-            sourceButtons.Controls.Add(CreateButton("\u79fb\u9664\u9009\u4e2d", OnRemoveSelectedFolder));
-            sourceButtons.Controls.Add(CreateButton("\u4fdd\u5b58\u914d\u7f6e", OnSaveConfig));
-            sourceButtons.Controls.Add(CreateButton("\u6253\u5f00\u914d\u7f6e", OnOpenConfig));
-            layout.Controls.Add(sourceButtons, 0, 3);
-
-            FlowLayoutPanel runButtons = new FlowLayoutPanel();
-            runButtons.AutoSize = true;
-            runButtons.Margin = new Padding(0, 0, 0, 12);
-            startButton = CreateButton("\u5f00\u59cb\u540c\u6b65\u5e76\u7f16\u8bd1", OnStartCompile);
-            runButtons.Controls.Add(startButton);
-            runButtons.Controls.Add(CreateButton("\u6253\u5f00 wiki \u8f93\u51fa", OnOpenWiki));
-            layout.Controls.Add(runButtons, 0, 4);
-
-            logTextBox = new TextBox();
-            logTextBox.Dock = DockStyle.Fill;
-            logTextBox.Multiline = true;
-            logTextBox.ScrollBars = ScrollBars.Both;
-            logTextBox.WordWrap = false;
-            logTextBox.ReadOnly = true;
-            logTextBox.Font = new Font("Consolas", 9F);
-            layout.Controls.Add(WrapWithLabel("\u8fd0\u884c\u65e5\u5fd7", logTextBox), 0, 5);
-
-            Label hintLabel = new Label();
-            hintLabel.AutoSize = true;
-            hintLabel.Text = "\u5148\u4fdd\u5b58\u914d\u7f6e\uff0c\u518d\u5f00\u59cb\u3002\u7a0b\u5e8f\u4f1a\u76f4\u63a5\u8c03\u7528 Node\uff0c\u4e0d\u4f1a\u6253\u5f00 PowerShell \u7a97\u53e3\u3002";
-            hintLabel.Margin = new Padding(0, 12, 0, 0);
-            layout.Controls.Add(hintLabel, 0, 6);
-
-            Controls.Add(layout);
-            FormClosing += OnFormClosing;
-        }
-
-        private static Control WrapWithLabel(string label, Control control)
-        {
-            TableLayoutPanel wrapper = new TableLayoutPanel();
-            wrapper.Dock = DockStyle.Fill;
-            wrapper.ColumnCount = 1;
-            wrapper.RowCount = 2;
-            wrapper.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            wrapper.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-            Label labelControl = new Label();
-            labelControl.Text = label;
-            labelControl.AutoSize = true;
-            labelControl.Margin = new Padding(0, 0, 0, 4);
-
-            wrapper.Controls.Add(labelControl, 0, 0);
-            wrapper.Controls.Add(control, 0, 1);
-            return wrapper;
-        }
-
-        private static Button CreateButton(string text, EventHandler handler)
-        {
-            Button button = new Button();
-            button.Text = text;
-            button.AutoSize = true;
-            button.Margin = new Padding(0, 0, 8, 0);
-            button.Click += handler;
-            return button;
-        }
-
-        private void BindConfigToUi()
-        {
-            targetVaultTextBox.Text = config.target_vault;
-            sourceFoldersListBox.Items.Clear();
-            foreach (string folder in config.source_folders)
-            {
-                sourceFoldersListBox.Items.Add(folder);
-            }
-
-            AppendLog("\u9879\u76ee\u76ee\u5f55\uff1a" + projectRoot);
-            AppendLog("\u914d\u7f6e\u6587\u4ef6\uff1a" + configPath);
-        }
-
-        private void OnAddSourceFolder(object sender, EventArgs e)
-        {
-            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
-            {
-                dialog.Description = "\u9009\u62e9\u4e00\u4e2a\u540c\u6b65\u6e90\u6587\u4ef6\u5939\u3002\u53ef\u91cd\u590d\u70b9\u51fb\u6dfb\u52a0\u591a\u4e2a\u6587\u4ef6\u5939\u3002";
-                dialog.ShowNewFolderButton = false;
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    if (!sourceFoldersListBox.Items.Contains(dialog.SelectedPath))
-                    {
-                        sourceFoldersListBox.Items.Add(dialog.SelectedPath);
-                    }
-                }
-            }
-        }
-
-        private void OnRemoveSelectedFolder(object sender, EventArgs e)
-        {
-            while (sourceFoldersListBox.SelectedItems.Count > 0)
-            {
-                sourceFoldersListBox.Items.Remove(sourceFoldersListBox.SelectedItems[0]);
-            }
-        }
-
-        private void OnSaveConfig(object sender, EventArgs e)
-        {
-            SaveConfig();
-        }
-
-        private void OnOpenConfig(object sender, EventArgs e)
-        {
-            Process.Start("notepad.exe", configPath);
-        }
-
-        private void OnOpenWiki(object sender, EventArgs e)
-        {
-            string wikiPath = Path.Combine(targetVaultTextBox.Text.Trim(), "wiki");
-            if (Directory.Exists(wikiPath))
-            {
-                Process.Start("explorer.exe", wikiPath);
-                return;
-            }
-
-            MessageBox.Show(this, "wiki \u8f93\u51fa\u76ee\u5f55\u8fd8\u4e0d\u5b58\u5728\uff0c\u8bf7\u5148\u8fd0\u884c\u4e00\u6b21\u7f16\u8bd1\u3002", "\u63d0\u793a", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void OnStartCompile(object sender, EventArgs e)
-        {
-            if (runningProcess != null && !runningProcess.HasExited)
-            {
-                MessageBox.Show(this, "\u5df2\u6709\u540c\u6b65\u7f16\u8bd1\u4efb\u52a1\u6b63\u5728\u8fd0\u884c\u3002", "\u63d0\u793a", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            if (sourceFoldersListBox.Items.Count == 0)
-            {
-                MessageBox.Show(this, "\u8bf7\u5148\u6dfb\u52a0\u81f3\u5c11\u4e00\u4e2a\u540c\u6b65\u6e90\u6587\u4ef6\u5939\u3002", "\u7f3a\u5c11\u6e90\u6587\u4ef6\u5939", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            SaveConfig();
-            StartCompileProcess();
-        }
-
-        private void StartCompileProcess()
-        {
-            string nodePath = ResolveNodePath();
-            string scriptPath = Path.Combine(projectRoot, "scripts", "sync-compile.mjs");
-            logTextBox.Clear();
-            AppendLog("\u6b63\u5728\u5f00\u59cb\u540c\u6b65\u5e76\u7f16\u8bd1...");
-            AppendLog("Node: " + nodePath);
-            AppendLog("Script: " + scriptPath);
-
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = nodePath;
-            startInfo.Arguments = Quote(scriptPath);
-            startInfo.WorkingDirectory = projectRoot;
-            startInfo.UseShellExecute = false;
-            startInfo.CreateNoWindow = true;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.StandardOutputEncoding = Encoding.UTF8;
-            startInfo.StandardErrorEncoding = Encoding.UTF8;
-
-            runningProcess = new Process();
-            runningProcess.StartInfo = startInfo;
-            runningProcess.EnableRaisingEvents = true;
-            runningProcess.OutputDataReceived += OnProcessOutput;
-            runningProcess.ErrorDataReceived += OnProcessOutput;
-            runningProcess.Exited += OnProcessExited;
-
-            startButton.Enabled = false;
-            runningProcess.Start();
-            runningProcess.BeginOutputReadLine();
-            runningProcess.BeginErrorReadLine();
-        }
-
-        private static string ResolveNodePath()
-        {
-            string nvmNode = Path.Combine("C:\\", "nvm4w", "nodejs", "node.exe");
-            if (File.Exists(nvmNode))
-            {
-                return nvmNode;
-            }
-
-            return "node";
-        }
-
-        private static string Quote(string value)
-        {
-            return "\"" + value.Replace("\"", "\\\"") + "\"";
-        }
-
-        private void OnProcessOutput(object sender, DataReceivedEventArgs e)
-        {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                AppendLog(StripAnsi(e.Data));
-            }
-        }
-
-        private static string StripAnsi(string line)
-        {
-            return Regex.Replace(line, @"\x1B\[[0-?]*[ -/]*[@-~]", string.Empty);
-        }
-
-        private void OnProcessExited(object sender, EventArgs e)
-        {
-            int exitCode = runningProcess.ExitCode;
-            BeginInvoke(new Action(delegate
-            {
-                startButton.Enabled = true;
-                AppendLog("\u8fdb\u7a0b\u9000\u51fa\uff0c\u4ee3\u7801\uff1a" + exitCode + "\u3002");
-            }));
-        }
-
-        private void AppendLog(string line)
-        {
-            if (InvokeRequired)
-            {
-                BeginInvoke(new Action<string>(AppendLog), line);
-                return;
-            }
-
-            logTextBox.AppendText("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + line + Environment.NewLine);
-        }
-
-        private void OnFormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (runningProcess == null || runningProcess.HasExited)
-            {
-                return;
-            }
-
-            DialogResult result = MessageBox.Show(
-                this,
-                "\u540c\u6b65\u7f16\u8bd1\u4ecd\u5728\u8fd0\u884c\u3002\u5173\u95ed\u7a97\u53e3\u4f1a\u505c\u6b62\u5f53\u524d\u4efb\u52a1\uff0c\u786e\u8ba4\u5173\u95ed\u5417\uff1f",
-                "\u786e\u8ba4\u5173\u95ed",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning);
-            if (result != DialogResult.Yes)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            runningProcess.Kill();
+            BuildMainShell();
         }
     }
 
@@ -442,9 +426,9 @@ namespace LlmWikiGui
 
         public static SyncCompileConfig CreateDefault(string projectRoot)
         {
-            SyncCompileConfig config = new SyncCompileConfig();
-            config.ApplyDefaults(projectRoot);
-            return config;
+            SyncCompileConfig defaultConfig = new SyncCompileConfig();
+            defaultConfig.ApplyDefaults(projectRoot);
+            return defaultConfig;
         }
 
         public void ApplyDefaults(string projectRoot)
@@ -453,22 +437,27 @@ namespace LlmWikiGui
             {
                 target_vault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "ai\u7684\u4ed3\u5e93");
             }
+
             if (string.IsNullOrEmpty(compiler_root))
             {
                 compiler_root = projectRoot;
             }
+
             if (source_folders == null)
             {
                 source_folders = new List<string>();
             }
+
             if (string.IsNullOrEmpty(compile_mode))
             {
                 compile_mode = "batch";
             }
+
             if (batch_limit <= 0)
             {
                 batch_limit = 20;
             }
+
             if (batch_pattern_order == null || batch_pattern_order.Count == 0)
             {
                 batch_pattern_order = new List<string>
@@ -481,6 +470,7 @@ namespace LlmWikiGui
                     "*"
                 };
             }
+
             if (exclude_dirs == null || exclude_dirs.Count == 0)
             {
                 exclude_dirs = new List<string>

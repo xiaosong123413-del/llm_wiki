@@ -9,7 +9,22 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "search:eval": "node scripts/search-eval.mjs",
+    "search:eval:benchmark": "node scripts/search-eval.mjs --queries search/queries.benchmark.json --qrels search/qrels.benchmark.json",
+    "wiki:static": "node scripts/export-static-wiki.mjs",
+    "pages:deploy": "npm run wiki:static && npx wrangler pages functions build --outdir dist/static-wiki && npx wrangler pages deploy dist/static-wiki --project-name llm-wiki --branch main --commit-dirty=true",
+    "web:sync-state": "node scripts/sync-web-state.mjs",
     "gui:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-gui.ps1",
+    "desktop:webui:install": "npm --prefix desktop-webui install",
+    "desktop:webui:dev": "npm --prefix desktop-webui run dev",
+    "desktop:webui:start": "npm --prefix desktop-webui run start",
+    "desktop:webui:build": "npm --prefix desktop-webui run build",
+    "desktop:webui:launch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-desktop-webui.ps1",
+    "desktop:webui:launcher:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop-webui-launcher.ps1",
+    "audit-shared:build": "npm --prefix audit-shared run build",
+    "web:build": "npm run audit-shared:build && npm --prefix web install && npm --prefix web run build",
+    "web:start": "npm --prefix web run start --",
+    "obsidian-audit:build": "npm run audit-shared:build && npm --prefix plugins/obsidian-audit install && npm --prefix plugins/obsidian-audit run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test"
@@ -46,11 +61,13 @@
     "chokidar": "^4.0.0",
     "commander": "^13.0.0",
     "dotenv": "^17.4.0",
+    "global-agent": "^3.0.0",
     "js-yaml": "^4.1.1",
-    "openai": "^4.0.0",
     "jsdom": "^25.0.0",
+    "openai": "^4.0.0",
     "p-limit": "^6.0.0",
-    "turndown": "^7.2.0"
+    "turndown": "^7.2.0",
+    "undici": "^7.25.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

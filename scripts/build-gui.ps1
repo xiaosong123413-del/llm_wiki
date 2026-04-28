@@ -16,6 +16,8 @@ if (-not (Test-Path $csc)) {
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
+$sourceFiles = Get-ChildItem -Path $sourceDir -Filter *.cs | Sort-Object Name | ForEach-Object { $_.FullName }
+
 & $csc `
   /nologo `
   /target:winexe `
@@ -28,8 +30,17 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
   /reference:System.Web.Extensions.dll `
   /reference:System.Windows.Forms.dll `
   "/out:$outExe" `
-  (Join-Path $sourceDir "Program.cs") `
-  (Join-Path $sourceDir "MainForm.cs")
+  $sourceFiles
+
+if ($LASTEXITCODE -ne 0) {
+  throw "csc.exe failed with exit code $LASTEXITCODE"
+}
+
+$runningDesktopExe = Get-Process | Where-Object { $_.Path -eq $desktopExe }
+if ($runningDesktopExe) {
+  $runningDesktopExe | Stop-Process -Force
+  Start-Sleep -Milliseconds 300
+}
 
 Copy-Item $outExe $desktopExe -Force
 Write-Host "Built: $outExe"

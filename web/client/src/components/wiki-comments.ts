@@ -1,4 +1,4 @@
-export interface WikiComment {
+interface WikiComment {
   id: string;
   path: string;
   quote: string;
@@ -46,15 +46,19 @@ interface WikiCommentAiDraftConfirmPayload {
   page: WikiCommentPagePayload;
 }
 
+type WikiCommentCardPhase = "idle" | "generating" | "confirming" | "discarding";
+
 interface WikiCommentCardState {
-  busy: boolean;
-  error: string;
+  phase: WikiCommentCardPhase;
+  error: string | null;
   draft: WikiCommentAiDraft | null;
 }
 
 interface WikiCommentSurfaceDocumentOptions {
-  sourceEditable?: boolean;
-  onPageConfirmed?: ((page: WikiCommentPagePayload) => void) | undefined;
+  sourceEditable: boolean;
+  refreshPage: (page: WikiCommentPagePayload) => void;
+  loadOnSet?: boolean;
+  contentAlreadyRendered?: boolean;
 }
 
 interface WikiCommentSurfaceOptions {
@@ -62,6 +66,7 @@ interface WikiCommentSurfaceOptions {
   list: HTMLElement;
   status: HTMLElement;
   panel: HTMLElement;
+  addButton?: HTMLButtonElement;
   closeButton?: HTMLButtonElement;
   emptyLabel: string;
 }
@@ -73,20 +78,33 @@ export interface WikiCommentSurfaceController {
   createFromSelection(selection: WikiCommentSelection | null): Promise<void>;
 }
 
+const DEFAULT_DOCUMENT_OPTIONS: WikiCommentSurfaceDocumentOptions = {
+  sourceEditable: false,
+  refreshPage: () => {},
+};
+
 export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): WikiCommentSurfaceController {
-  const { content, list, status, panel, closeButton, emptyLabel } = options;
+  const { content, list, status, panel, addButton, closeButton, emptyLabel } = options;
   let currentPath = "";
   let baseHtml = "";
   let comments: WikiComment[] = [];
   let sourceEditable = false;
-  let onPageConfirmed: ((page: WikiCommentPagePayload) => void) | undefined;
+  let refreshPage = DEFAULT_DOCUMENT_OPTIONS.refreshPage;
+  let documentGeneration = 0;
+  let commentsRequestSeq = 0;
+  let commentsLoaded = false;
   const cardStates = new Map<string, WikiCommentCardState>();
   const layout = panel.parentElement as HTMLElement | null;
+  const inlinePanel = Boolean(addButton);
 
-  setPanelOpen(false);
+  setPanelOpen(inlinePanel);
 
   closeButton?.addEventListener("click", () => {
     setPanelOpen(false);
+  });
+  addButton?.addEventListener("click", () => {
+    setPanelOpen(true);
+    void createCommentFromSelection();
   });
 
   list.addEventListener("click", (event) => {
@@ -126,33 +144,49 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
   });
 
   return {
-    async setDocument(path: string, html: string, documentOptions: WikiCommentSurfaceDocumentOptions = {}): Promise<void> {
+    async setDocument(path: string, html: string, documentOptions: WikiCommentSurfaceDocumentOptions = DEFAULT_DOCUMENT_OPTIONS): Promise<void> {
+      documentGeneration += 1;
       currentPath = path;
       baseHtml = html;
-      sourceEditable = Boolean(documentOptions.sourceEditable);
-      onPageConfirmed = documentOptions.onPageConfirmed;
+      sourceEditable = documentOptions.sourceEditable;
+      refreshPage = documentOptions.refreshPage;
+      commentsLoaded = false;
       cardStates.clear();
-      content.innerHTML = html;
+      if (!documentOptions.contentAlreadyRendered) {
+        content.innerHTML = html;
+      }
       if (!path) {
         comments = [];
         renderComments();
         return;
       }
+      if (documentOptions.loadOnSet === false) {
+        comments = [];
+        list.innerHTML = `<p class="wiki-comments-panel__empty">${escapeHtml(emptyLabel)}</p>`;
+        status.textContent = "打开评论面板后读取评论。";
+        return;
+      }
       await refreshComments();
     },
     clear(message: string): void {
+      documentGeneration += 1;
       currentPath = "";
       baseHtml = "";
       comments = [];
       sourceEditable = false;
-      onPageConfirmed = undefined;
+      refreshPage = DEFAULT_DOCUMENT_OPTIONS.refreshPage;
+      commentsLoaded = false;
       cardStates.clear();
       setPanelOpen(false);
       list.innerHTML = `<p class="wiki-comments-panel__empty">${escapeHtml(emptyLabel)}</p>`;
       status.textContent = message;
     },
     toggle(): void {
-      setPanelOpen(panel.hidden);
+      const shouldOpen = panel.hidden;
+      setPanelOpen(shouldOpen);
+      if (shouldOpen) {
+        loadCommentsIfNeeded();
+      }
     },
     async createFromSelection(selection: WikiCommentSelection | null): Promise<void> {
       await createCommentFromSelection(selection);
@@ -163,26 +197,44 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
     if (!currentPath) {
       comments = [];
       renderComments();
+      commentsLoaded = true;
       return;
     }
+    const requestPath = currentPath;
+    const requestSeq = ++commentsRequestSeq;
     status.textContent = "正在读取评论...";
     try {
-      const response = await fetch(`/api/wiki-comments?path=${encodeURIComponent(currentPath)}`);
+      const response = await fetch(`/api/wiki-comments?path=${encodeURIComponent(requestPath)}`);
       const payload = await readApiResponse<WikiComment[]>(response, "读取评论失败。");
+      if (requestSeq !== commentsRequestSeq || requestPath !== currentPath) {
+        return;
+      }
       if (!response.ok || !payload.success || !payload.data) {
         throw new Error(payload.error ?? "failed to load comments");
       }
       comments = payload.data;
+      commentsLoaded = true;
       syncCardStates();
       renderComments();
       status.textContent = comments.length > 0
         ? `已加载 ${comments.length} 条评论。`
         : "选中文本后点击浮动“评论”，即可新增评论。";
     } catch (error) {
+      if (requestSeq !== commentsRequestSeq || requestPath !== currentPath) {
+        return;
+      }
       comments = [];
+      commentsLoaded = true;
       renderComments();
       status.textContent = error instanceof Error ? error.message : String(error);
     }
+  }
+
+  function loadCommentsIfNeeded(): void {
+    if (!currentPath || commentsLoaded) {
+      return;
+    }
+    void refreshComments();
   }
 
   async function createCommentFromSelection(selection: WikiCommentSelection | null = locateSelection(content)): Promise<void> {
@@ -194,6 +246,8 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       status.textContent = "先选中文本，再点击浮动“评论”。";
       return;
     }
+    const requestPath = currentPath;
+    const requestGeneration = documentGeneration;
     setPanelOpen(true);
     status.textContent = "正在创建评论...";
     try {
@@ -201,7 +255,7 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          path: currentPath,
+          path: requestPath,
           quote: selection.quote,
           text: "",
           start: selection.start,
@@ -212,7 +266,13 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       if (!response.ok || !payload.success || !payload.data) {
         throw new Error(payload.error ?? "failed to create comment");
       }
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       await refreshComments();
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       if (!focusCommentInput(payload.data.id)) {
         comments = mergeCreatedComment(comments, payload.data);
         syncCardStates();
@@ -221,6 +281,9 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       }
       status.textContent = "评论已创建，请在侧栏补充内容。";
     } catch (error) {
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       status.textContent = error instanceof Error ? error.message : String(error);
     }
   }
@@ -283,7 +346,11 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
     if (!comment || !canAiResolve(comment)) {
       return;
     }
-    updateCardState(id, { busy: true, error: "", draft: null });
+    setCardState(id, {
+      phase: "generating",
+      error: null,
+      draft: null,
+    });
     status.textContent = "正在生成 AI 草案...";
     renderComments();
     try {
@@ -294,12 +361,20 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       if (!response.ok || !payload.success || !payload.data) {
         throw new Error(payload.error ?? "failed to create ai draft");
       }
-      updateCardState(id, { busy: false, error: "", draft: payload.data });
+      setCardState(id, {
+        phase: "idle",
+        error: null,
+        draft: payload.data,
+      });
       renderComments();
       status.textContent = "AI 草案已生成，请确认写回。";
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      updateCardState(id, { busy: false, error: message });
+      setCardState(id, {
+        phase: "idle",
+        error: message,
+        draft: null,
+      });
       renderComments();
       status.textContent = message;
     }
@@ -310,7 +385,13 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
     if (!cardState.draft) {
       return;
     }
-    updateCardState(id, { busy: true, error: "" });
+    const requestPath = currentPath;
+    const requestGeneration = documentGeneration;
+    setCardState(id, {
+      phase: "confirming",
+      error: null,
+      draft: cardState.draft,
+    });
     status.textContent = "正在写回草案...";
     renderComments();
     try {
@@ -322,12 +403,25 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       if (!response.ok || !payload.success || !payload.data?.page) {
         throw new Error(payload.error ?? "failed to confirm ai draft");
       }
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       applyConfirmedPage(payload.data.page);
       await refreshComments();
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       status.textContent = "评论已解决";
     } catch (error) {
+      if (!isActiveDocument(requestPath, requestGeneration)) {
+        return;
+      }
       const message = error instanceof Error ? error.message : String(error);
-      updateCardState(id, { busy: false, error: message });
+      setCardState(id, {
+        phase: "idle",
+        error: message,
+        draft: cardState.draft,
+      });
       renderComments();
       status.textContent = message;
     }
@@ -338,7 +432,11 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
     if (!cardState.draft) {
       return;
     }
-    updateCardState(id, { busy: true, error: "" });
+    setCardState(id, {
+      phase: "discarding",
+      error: null,
+      draft: cardState.draft,
+    });
     renderComments();
     try {
       const response = await fetch(
@@ -349,12 +447,20 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
       if (!response.ok || !payload.success) {
         throw new Error(payload.error ?? "failed to discard ai draft");
       }
-      updateCardState(id, { busy: false, error: "", draft: null });
+      setCardState(id, {
+        phase: "idle",
+        error: null,
+        draft: null,
+      });
       renderComments();
       status.textContent = "已放弃草案。";
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      updateCardState(id, { busy: false, error: message });
+      setCardState(id, {
+        phase: "idle",
+        error: message,
+        draft: cardState.draft,
+      });
       renderComments();
       status.textContent = message;
     }
@@ -390,7 +496,7 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
 
   function renderCommentCard(comment: WikiComment): string {
     const cardState = getCardState(comment.id);
-    const disabled = cardState.busy ? "disabled" : "";
+    const disabled = cardState.phase === "idle" ? "" : "disabled";
     const error = cardState.error
       ? `<p class="wiki-comments-panel__error">${escapeHtml(cardState.error)}</p>`
       : "";
@@ -433,7 +539,7 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
     baseHtml = page.html || "";
     sourceEditable = Boolean(page.sourceEditable);
     content.innerHTML = baseHtml;
-    onPageConfirmed?.(page);
+    refreshPage(page);
   }
 
   function canAiResolve(comment: WikiComment): boolean {
@@ -459,16 +565,15 @@ export function createWikiCommentSurface(options: WikiCommentSurfaceOptions): Wi
   }
 
   function getCardState(id: string): WikiCommentCardState {
-    return cardStates.get(id) ?? { busy: false, error: "", draft: null };
+    return cardStates.get(id) ?? { phase: "idle", error: null, draft: null };
   }
 
-  function updateCardState(id: string, patch: Partial<WikiCommentCardState>): void {
-    const current = getCardState(id);
-    cardStates.set(id, {
-      busy: patch.busy ?? current.busy,
-      error: patch.error ?? current.error,
-      draft: Object.prototype.hasOwnProperty.call(patch, "draft") ? (patch.draft ?? null) : current.draft,
-    });
+  function setCardState(id: string, nextState: WikiCommentCardState): void {
+    cardStates.set(id, nextState);
+  }
+
+  function isActiveDocument(path: string, generation: number): boolean {
+    return currentPath === path && documentGeneration === generation;
   }
 }
 

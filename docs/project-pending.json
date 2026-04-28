@@ -1,0 +1,11 @@
+[
+  {
+    "id": "cloudflare-r2-media-upload",
+    "title": "Cloudflare R2 图片 / 视频完整上传",
+    "area": "手机端",
+    "status": "代码已接好，等待 Cloudflare Worker 真机闭环验证",
+    "description": "手机端日记和剪藏的图片、视频附件改向 Cloudflare R2 media bucket 上传，并同步回电脑。",
+    "pausedReason": "手机端 `diaryService`、Cloudflare Worker `/media/upload`、桌面端远端媒体下载都已改好；当前剩余动作是用真机各上传一条图片和视频，确认 Cloudflare R2 -> Worker D1 -> 桌面 raw assets 的完整闭环。",
+    "nextStep": "用手机真实上传图片和视频各一条，验证 Cloudflare R2 -> Worker D1 -> 桌面 raw assets 的完整闭环。"
+  }
+]

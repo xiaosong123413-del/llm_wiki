@@ -27,7 +27,8 @@ export async function loadSyncCompileConfig(compilerRoot) {
   const raw = JSON.parse(content.replace(/^\uFEFF/, ""));
 
   return {
-    target_vault: raw.target_vault ?? "",
+    source_vault_root: raw.source_vault_root ?? "",
+    runtime_output_root: raw.runtime_output_root ?? "",
     compiler_root: raw.compiler_root ?? compilerRoot,
     source_folders: raw.source_folders ?? [],
     compile_mode: raw.compile_mode ?? "batch",

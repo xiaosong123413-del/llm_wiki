@@ -8,9 +8,11 @@
 
 import { DEFAULT_PROVIDER, PROVIDER_MODELS, OLLAMA_DEFAULT_HOST } from "./constants.js";
 import { AnthropicProvider } from "../providers/anthropic.js";
+import { GeminiProvider } from "../providers/gemini.js";
 import { OpenAIProvider } from "../providers/openai.js";
 import { OllamaProvider } from "../providers/ollama.js";
 import { MiniMaxProvider } from "../providers/minimax.js";
+import { CloudflareProvider } from "../providers/cloudflare.js";
 import {
   resolveAnthropicAuthFromEnv,
   resolveAnthropicBaseURLFromEnv,
@@ -47,7 +49,14 @@ export interface LLMProvider {
   ): Promise<string>;
 }
 
-const SUPPORTED_PROVIDERS: ReadonlySet<string> = new Set(["anthropic", "openai", "ollama", "minimax"]);
+const SUPPORTED_PROVIDERS: ReadonlySet<string> = new Set([
+  "anthropic",
+  "gemini",
+  "openai",
+  "ollama",
+  "minimax",
+  "cloudflare",
+]);
 
 /**
  * Factory that returns the appropriate LLMProvider based on env vars.
@@ -62,8 +71,18 @@ export function getProvider(): LLMProvider {
   switch (providerName) {
     case "anthropic":
       return getAnthropicProvider();
+    case "gemini":
+      return new GeminiProvider(
+        process.env.LLMWIKI_MODEL ?? "gemini-2.5-flash",
+        process.env.LLMWIKI_OPENAI_BASE_URL,
+        process.env.OPENAI_API_KEY,
+      );
     case "openai":
-      return new OpenAIProvider(getModelForProvider("openai"));
+      return new OpenAIProvider(
+        getModelForProvider("openai"),
+        resolveOpenAIBaseURLFromEnv(),
+        process.env.OPENAI_API_KEY,
+      );
     case "ollama":
       return new OllamaProvider(
         getModelForProvider("ollama"),
@@ -71,6 +90,8 @@ export function getProvider(): LLMProvider {
       );
     case "minimax":
       return getMiniMaxProvider();
+    case "cloudflare":
+      return new CloudflareProvider(getCloudflareModel());
     default:
       throw new Error(`Unhandled provider: ${providerName}`);
   }
@@ -91,6 +112,10 @@ function getMiniMaxProvider(): MiniMaxProvider {
   return new MiniMaxProvider(getModelForProvider("minimax"), apiKey);
 }
 
+function getCloudflareModel(): string {
+  return process.env.CLOUDFLARE_AI_MODEL ?? process.env.LLMWIKI_MODEL ?? PROVIDER_MODELS.cloudflare;
+}
+
 function getAnthropicProvider(): AnthropicProvider {
   const model = resolveAnthropicModelFromEnv() ?? PROVIDER_MODELS.anthropic;
   const baseURL = resolveAnthropicBaseURLFromEnv();
@@ -100,6 +125,17 @@ function getAnthropicProvider(): AnthropicProvider {
     baseURL,
     ...auth,
   });
+}
+
+function resolveOpenAIBaseURLFromEnv(): string | undefined {
+  const value = process.env.LLMWIKI_OPENAI_BASE_URL?.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value).toString();
+    return url.endsWith("/") ? url : `${url}/`;
+  } catch {
+    throw new Error(`Invalid LLMWIKI_OPENAI_BASE_URL: "${value}"`);
+  }
 }
 
 function getProviderName(): string {

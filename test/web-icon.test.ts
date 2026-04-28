@@ -30,6 +30,9 @@ describe("renderIcon", () => {
       "clipboard-list",
       "settings",
       "search",
+      "plus",
+      "chevron-left",
+      "chevron-right",
       "hammer",
     ]) {
       expect(ICON_NAMES).toContain(name);

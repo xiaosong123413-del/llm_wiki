@@ -1,0 +1,222 @@
+{
+  "documents": [
+    {
+      "id": "wiki-concepts-redis-cache",
+      "title": "Redis Cache",
+      "path": "wiki/concepts/redis-cache.md",
+      "layer": "wiki",
+      "excerpt": "Core concept page for Redis cache usage and invalidation tradeoffs.",
+      "tags": ["redis", "cache", "concept"],
+      "modifiedAt": "2026-04-10"
+    },
+    {
+      "id": "wiki-concepts-incident-playbook",
+      "title": "Incident Playbook",
+      "path": "wiki/concepts/incident-playbook.md",
+      "layer": "wiki",
+      "excerpt": "Overview for classifying incidents, triage ownership, and follow-up workflows.",
+      "tags": ["incident", "playbook", "concept"],
+      "modifiedAt": "2026-04-10"
+    },
+    {
+      "id": "wiki-concepts-vector-search",
+      "title": "Vector Search",
+      "path": "wiki/concepts/vector-search.md",
+      "layer": "wiki",
+      "excerpt": "Vector search complements keyword retrieval for semantic recall.",
+      "tags": ["vector", "embedding", "search"],
+      "modifiedAt": "2026-04-10"
+    },
+    {
+      "id": "wiki-concepts-source-ingest",
+      "title": "Source Ingest",
+      "path": "wiki/concepts/source-ingest.md",
+      "layer": "wiki",
+      "excerpt": "How raw notes turn into sources_full and then into compiled wiki pages.",
+      "tags": ["sources", "ingest", "pipeline"],
+      "modifiedAt": "2026-04-10"
+    },
+    {
+      "id": "wiki-procedures-cache-warmup",
+      "title": "Cache Warmup Procedure",
+      "path": "wiki/procedures/cache-warmup.md",
+      "layer": "wiki",
+      "excerpt": "Step-by-step cache warmup checklist before traffic cutover.",
+      "tags": ["cache", "procedure", "warmup"],
+      "modifiedAt": "2026-04-11"
+    },
+    {
+      "id": "wiki-procedures-cache-recovery",
+      "title": "Cache Recovery Procedure",
+      "path": "wiki/procedures/cache-recovery.md",
+      "layer": "wiki",
+      "excerpt": "Recovery workflow after Redis misses, corruption, or rollout rollback.",
+      "tags": ["cache", "recovery", "procedure"],
+      "modifiedAt": "2026-04-11"
+    },
+    {
+      "id": "wiki-procedures-incident-triage",
+      "title": "Incident Triage Procedure",
+      "path": "wiki/procedures/incident-triage.md",
+      "layer": "wiki",
+      "excerpt": "How to triage incidents, assign severity, and move into response mode.",
+      "tags": ["incident", "triage", "procedure"],
+      "modifiedAt": "2026-04-11"
+    },
+    {
+      "id": "wiki-procedures-source-audit",
+      "title": "Source Audit Procedure",
+      "path": "wiki/procedures/source-audit.md",
+      "layer": "wiki",
+      "excerpt": "Audit source provenance before compile and publish.",
+      "tags": ["sources", "audit", "procedure"],
+      "modifiedAt": "2026-04-11"
+    },
+    {
+      "id": "wiki-episodes-redis-outage",
+      "title": "Redis Outage Brief",
+      "path": "wiki/episodes/2026-04-03-redis-outage.md",
+      "layer": "wiki",
+      "excerpt": "Timeline of a Redis outage and the recovery decisions taken that day.",
+      "tags": ["redis", "incident", "temporal"],
+      "modifiedAt": "2026-04-03"
+    },
+    {
+      "id": "wiki-episodes-cache-retro",
+      "title": "Cache Warmup Retro",
+      "path": "wiki/episodes/2026-04-02-cache-warmup-retro.md",
+      "layer": "wiki",
+      "excerpt": "Episode-style retrospective for the cache warmup rollout.",
+      "tags": ["cache", "retro", "temporal"],
+      "modifiedAt": "2026-04-02"
+    },
+    {
+      "id": "sources-redis-note",
+      "title": "Redis Cache Source Note",
+      "path": "sources_full/notes/redis-cache-source.md",
+      "layer": "source",
+      "excerpt": "Clipped source note with Redis cache invalidation patterns.",
+      "tags": ["redis", "cache", "source"],
+      "modifiedAt": "2026-04-12"
+    },
+    {
+      "id": "sources-incident-playbook",
+      "title": "Incident Playbook Source",
+      "path": "sources_full/notes/incident-playbook-source.md",
+      "layer": "source",
+      "excerpt": "Supporting note for incident playbook examples and alert routing.",
+      "tags": ["incident", "playbook", "source"],
+      "modifiedAt": "2026-04-12"
+    },
+    {
+      "id": "sources-source-audit",
+      "title": "Source Audit Checklist Source",
+      "path": "sources_full/notes/source-audit-checklist.md",
+      "layer": "source",
+      "excerpt": "Support material for source audit and provenance checks.",
+      "tags": ["sources", "audit", "checklist"],
+      "modifiedAt": "2026-04-12"
+    },
+    {
+      "id": "sources-vector-eval",
+      "title": "Vector Eval Source",
+      "path": "sources_full/notes/vector-eval-source.md",
+      "layer": "source",
+      "excerpt": "Source note about vector retrieval evaluation and false positive analysis.",
+      "tags": ["vector", "eval", "source"],
+      "modifiedAt": "2026-04-12"
+    },
+    {
+      "id": "raw-irrelevant-fruit",
+      "title": "Fruit clip",
+      "path": "raw/剪藏/fruit.md",
+      "layer": "raw",
+      "excerpt": "Apples, oranges, and random grocery notes.",
+      "tags": ["misc"],
+      "modifiedAt": "2026-04-12"
+    },
+    {
+      "id": "raw-incident-fragment",
+      "title": "Incident fragment",
+      "path": "raw/剪藏/incident-fragment.md",
+      "layer": "raw",
+      "excerpt": "Unstructured fragment mentioning incident, cache, and alerts without context.",
+      "tags": ["incident", "cache", "raw"],
+      "modifiedAt": "2026-04-12"
+    }
+  ],
+  "queries": [
+    {
+      "id": "b1",
+      "query": "wiki/procedures/cache-recovery.md",
+      "mode": "direct",
+      "group": "procedure"
+    },
+    {
+      "id": "b2",
+      "query": "Redis cache",
+      "mode": "keyword",
+      "group": "concept"
+    },
+    {
+      "id": "b3",
+      "query": "cache warmup procedure",
+      "mode": "workflow",
+      "group": "procedure"
+    },
+    {
+      "id": "b4",
+      "query": "2026-04-03 redis outage",
+      "mode": "temporal",
+      "group": "temporal"
+    },
+    {
+      "id": "b5",
+      "query": "incident playbook",
+      "mode": "entity",
+      "group": "concept"
+    },
+    {
+      "id": "b6",
+      "query": "incident triage procedure",
+      "mode": "workflow",
+      "group": "procedure"
+    },
+    {
+      "id": "b7",
+      "query": "source audit checklist",
+      "mode": "hybrid",
+      "group": "supporting-source"
+    },
+    {
+      "id": "b8",
+      "query": "vector search evaluation",
+      "mode": "hybrid",
+      "group": "supporting-source"
+    },
+    {
+      "id": "b9",
+      "query": "redis incident recovery",
+      "mode": "hybrid",
+      "group": "temporal"
+    },
+    {
+      "id": "b10",
+      "query": "source ingest pipeline",
+      "mode": "hybrid",
+      "group": "concept"
+    },
+    {
+      "id": "b11",
+      "query": "cache retro",
+      "mode": "keyword",
+      "group": "temporal"
+    },
+    {
+      "id": "b12",
+      "query": "incident alerts raw note",
+      "mode": "hybrid",
+      "group": "noise-control"
+    }
+  ]
+}

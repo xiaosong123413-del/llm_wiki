@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -6,6 +7,8 @@ import {
   loadSyncCompileConfig,
   saveSyncCompileConfig,
 } from "../scripts/sync-compile/config.mjs";
+import { resolveSyncRoots } from "../scripts/sync-compile/roots.mjs";
+import * as syncCompileModule from "../scripts/sync-compile.mjs";
 
 async function makeTempDir(prefix: string): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), prefix));
@@ -26,7 +29,8 @@ describe("sync compile config", () => {
     await writeFile(
       path.join(tempDir, "sync-compile-config.json"),
       JSON.stringify({
-        target_vault: "C:/vault",
+        source_vault_root: "C:/vault",
+        runtime_output_root: "C:/runtime",
         compiler_root: tempDir,
         source_folders: [],
       }),
@@ -45,7 +49,8 @@ describe("sync compile config", () => {
     tempDir = await makeTempDir("sync-config-save-");
 
     await saveSyncCompileConfig(tempDir, {
-      target_vault: "C:/vault",
+      source_vault_root: "C:/vault",
+      runtime_output_root: "C:/runtime",
       compiler_root: tempDir,
       source_folders: ["C:/a", "C:/b"],
       compile_mode: "batch",
@@ -64,7 +69,8 @@ describe("sync compile config", () => {
     const withBom =
       "\uFEFF" +
       JSON.stringify({
-        target_vault: "C:/vault",
+        source_vault_root: "C:/vault",
+        runtime_output_root: "C:/runtime",
         compiler_root: tempDir,
         source_folders: [],
       });
@@ -76,6 +82,55 @@ describe("sync compile config", () => {
 
     const config = await loadSyncCompileConfig(tempDir);
 
-    expect(config.target_vault).toBe("C:/vault");
+    expect(config.source_vault_root).toBe("C:/vault");
+    expect(config.runtime_output_root).toBe("C:/runtime");
+  });
+
+  it("fails fast when a sync root is missing", () => {
+    tempDir = path.join(os.tmpdir(), "sync-config-missing");
+    const sourceVaultRoot = path.join(tempDir, "source-vault");
+    fs.mkdirSync(sourceVaultRoot, { recursive: true });
+
+    expect(() =>
+      resolveSyncRoots(
+        {
+          source_vault_root: "",
+          runtime_output_root: "C:/runtime",
+          compiler_root: tempDir,
+        },
+        tempDir,
+      )).toThrow("source_vault_root");
+
+    expect(() =>
+      resolveSyncRoots(
+        {
+          source_vault_root: sourceVaultRoot,
+          runtime_output_root: "   ",
+          compiler_root: tempDir,
+        },
+        tempDir,
+      )).toThrow("runtime_output_root");
+  });
+
+  it("derives compile roots from the renamed config fields", () => {
+    expect(typeof syncCompileModule.resolveCompileRootsFromConfig).toBe("function");
+    tempDir = path.join(os.tmpdir(), "sync-config-derive");
+    const sourceVaultRoot = path.join(tempDir, "source-vault");
+    const runtimeRoot = path.join(tempDir, "runtime-root");
+    fs.mkdirSync(sourceVaultRoot, { recursive: true });
+    fs.mkdirSync(runtimeRoot, { recursive: true });
+
+    const roots = syncCompileModule.resolveCompileRootsFromConfig(
+      {
+        source_vault_root: sourceVaultRoot,
+        runtime_output_root: runtimeRoot,
+        compiler_root: "C:/compiler",
+      },
+      tempDir,
+    );
+
+    expect(roots.sourceVaultRoot).toBe(path.resolve(sourceVaultRoot).toLowerCase());
+    expect(roots.runtimeRoot).toBe(path.resolve(runtimeRoot).toLowerCase());
+    expect(roots.runtimeWikiDir).toBe(path.join(path.resolve(runtimeRoot).toLowerCase(), "wiki"));
   });
 });

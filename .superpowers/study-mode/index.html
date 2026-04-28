@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>考研模式操作守则</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: rgba(255, 255, 255, 0.92);
+        --line: #d9dfef;
+        --text: #18233a;
+        --muted: #60708f;
+        --blue: #2d63ff;
+        --green: #17a45c;
+        --amber: #f59e0b;
+        --shadow: 0 20px 60px rgba(85, 104, 152, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(45, 99, 255, 0.12), transparent 22%),
+          radial-gradient(circle at top right, rgba(122, 90, 255, 0.1), transparent 24%),
+          var(--bg);
+      }
+
+      .page {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 24px auto 40px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 14px;
+        padding: 28px 32px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(237, 243, 255, 0.96), rgba(255, 255, 255, 0.98));
+        box-shadow: var(--shadow);
+      }
+
+      .hero__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 4vw, 52px);
+        line-height: 1.05;
+      }
+
+      .hero__date {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .hero__summary {
+        margin: 0;
+        max-width: 920px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .hero__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .chip--blue { background: #edf3ff; color: var(--blue); }
+      .chip--green { background: #ecfbf2; color: var(--green); }
+      .chip--amber { background: #fff5e3; color: #c27c08; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .column {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .card h2 {
+        margin: 0 0 14px;
+        font-size: 24px;
+      }
+
+      .list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .item__icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #eef3ff;
+        color: var(--blue);
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .item strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 16px;
+      }
+
+      .item p,
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .ban-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .ban {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: #fff7f4;
+        border: 1px solid #f4d9cd;
+        color: #b45309;
+        font-weight: 700;
+      }
+
+      .keep-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .keep {
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: #f7f9ff;
+        border: 1px solid var(--line);
+        font-weight: 700;
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px 18px;
+        overflow: auto;
+        border-radius: 18px;
+        background: #10192b;
+        color: #e7eeff;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .footer {
+        margin-top: 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          width: min(100vw - 20px, 100%);
+          margin: 10px auto 20px;
+        }
+
+        .hero,
+        .card {
+          border-radius: 20px;
+          padding: 18px;
+        }
+
+        .grid,
+        .ban-list {
+          grid-template-columns: 1fr;
+        }
+
+        .hero__summary {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="hero__top">
+          <div>
+            <p class="eyebrow">Study Mode</p>
+            <h1>考研模式操作守则</h1>
+          </div>
+          <div class="hero__date">开始时间：2026 年 5 月 1 日</div>
+        </div>
+        <p class="hero__summary">
+          你的系统从“建设期”切到“留存期”。目标不是继续折腾电脑，而是用最少维护成本，持续留下
+          学习记录、状态变化、方法沉淀，等考后再继续扩建。
+        </p>
+        <div class="hero__chips">
+          <span class="chip chip--blue">工作日只记录</span>
+          <span class="chip chip--green">周末集中整理</span>
+          <span class="chip chip--amber">暂停复杂开发</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="column">
+          <article class="card">
+            <h2>每天做什么</h2>
+            <div class="list">
+              <div class="item">
+                <div class="item__icon">1</div>
+                <div>
+                  <strong>学习记录</strong>
+                  <p>今天学了什么、卡在哪里、哪类题反复错。</p>
+                </div>
+              </div>
+              <div class="item">
+                <div class="item__icon">2</div>
+                <div>
+                  <strong>状态记录</strong>
+                  <p>困、焦虑、专注、效率断掉，直接记一条，不展开。</p>
+                </div>
+              </div>
+              <div class="item">
+                <div class="item__icon">3</div>
+                <div>
+                  <strong>方法记录</strong>
+                  <p>新学到的解法、背书办法、英语阅读技巧，1 到 3 句就够。</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>每周怎么用 Codex</h2>
+            <div class="list">
+              <div class="item">
+                <div class="item__icon">周</div>
+                <div>
+                  <strong>固定一个时段</strong>
+                  <p>每周一次，30 到 60 分钟。建议周六或周日晚。</p>
+                </div>
+              </div>
+              <div class="item">
+                <div class="item__icon">整</div>
+                <div>
+                  <strong>集中处理，不频繁打断</strong>
+                  <p>同步输入、整理闪念、总结 Memory、输出下周改进点。</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>你每周直接这样问</h2>
+            <pre>请基于我本周的闪念日记、原料和学习记录，帮我总结：
+1. 学习状态
+2. 情绪状态
+3. 本周最主要的效率问题
+4. 本周最值得保留的方法
+5. 下周最重要的 3 个改进点
+
+请判断我这周最影响考研效率的根因是什么。</pre>
+          </article>
+        </div>
+
+        <div class="column">
+          <article class="card">
+            <h2>工作日别做这些</h2>
+            <div class="ban-list">
+              <div class="ban">不要改页面</div>
+              <div class="ban">不要做新功能</div>
+              <div class="ban">不要调 UI</div>
+              <div class="ban">不要重构系统</div>
+              <div class="ban">不要研究自动化</div>
+              <div class="ban">不要长聊怎么继续开发</div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>考研期间只保留</h2>
+            <div class="keep-list">
+              <span class="keep">快速记录</span>
+              <span class="keep">原料收集</span>
+              <span class="keep">日记</span>
+              <span class="keep">Memory</span>
+              <span class="keep">Wiki 检索</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>一个底线规则</h2>
+            <p>
+              如果某次使用系统已经超过 20 分钟，你还没有回到学习，那就立刻停。
+              系统是辅助工具，不是新的拖延方式。
+            </p>
+          </article>
+
+          <article class="card">
+            <h2>考后再开发</h2>
+            <p>
+              任何新想法都先丢进“考后开发清单”，不要当场实现。这样你不会丢灵感，也不会在备考期被系统反客为主。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <p class="footer">一句话：不断记录，不中断沉淀，但暂停复杂建设。</p>
+    </main>
+  </body>
+</html>

@@ -6,6 +6,10 @@ import { config as loadDotenv } from "dotenv";
 import { parseArgs } from "./config.js";
 import { registerCLIProxyRoutes } from "./routes/cliproxy.js";
 import { registerAgentConfigRoutes } from "./routes/agent-config.js";
+import { registerAppConfigRoutes } from "./routes/app-config.js";
+import { registerAutomationConfigRoutes } from "./routes/automation-config.js";
+import { registerAutomationWorkspaceRoutes } from "./routes/automation-workspace.js";
+import { registerHealthDomainRoutes } from "./routes/health-domain.js";
 import { handleTaskPlanJsonParseError, registerTaskPlanRoutes } from "./routes/task-plan.js";
 import { registerLlmRoutes } from "./routes/llm.js";
 import { registerSearchRoutes } from "./routes/search.js";
@@ -20,6 +24,8 @@ import {
   handleWorkspaceDocs,
   handleWorkspaceDocsSave,
 } from "./routes/pages.js";
+import { handlePageSave } from "./routes/page-save.js";
+import { handlePageSideImageMedia, handlePageSideImageUpload } from "./routes/page-side-image.js";
 import {
   handleWikiCommentAiDraftConfirm,
   handleWikiCommentAiDraftCreate,
@@ -32,6 +38,7 @@ import {
 import {
   handleFlashDiaryAppend,
   handleFlashDiaryList,
+  handleFlashDiaryMemory,
   handleFlashDiaryPage,
   handleFlashDiaryRetry,
   handleFlashDiarySave,
@@ -79,6 +86,11 @@ import {
 import { handleClipCreate, handleYtDlpInstall, handleYtDlpStatus } from "./routes/clips.js";
 import { handleDouyinCookieSave, handleDouyinCookieStatusGet } from "./routes/douyin-import.js";
 import {
+  handleWorkspaceHealthApiConnectionSave,
+  handleWorkspaceHealthState,
+  handleWorkspaceHealthSync,
+} from "./routes/health-domain.js";
+import {
   handleXiaohongshuCookieSave,
   handleXiaohongshuImportConfigDelete,
   handleXiaohongshuImportConfigGet,
@@ -90,20 +102,29 @@ import { handleXhsBatch, handleXhsExtract, handleXhsFailureDelete, handleXhsFavo
 import { handleSyncConfigGet, handleSyncConfigSave } from "./routes/sync-config.js";
 import { handleToolboxCreate, handleToolboxDelete, handleToolboxList, handleToolboxSave } from "./routes/toolbox.js";
 import { handleRunCurrent, handleRunEvents, handleRunStart, handleRunStop } from "./routes/runs.js";
+import { startFlashDiaryMemoryScheduler } from "./services/flash-diary-memory-scheduler.js";
 import { createRunManager } from "./services/run-manager.js";
 
 const cfg = parseArgs(process.argv);
 loadProjectEnv(cfg.projectRoot);
 const runManager = createRunManager();
+const memoryScheduler = startFlashDiaryMemoryScheduler({ cfg });
+const unavailableHealthSyncRunner = async () => {
+  throw new Error("健康域同步运行器尚未接入。");
+};
 
 const app = express();
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "12mb" }));
 app.use(handleTaskPlanJsonParseError);
 
 // ── API ────────────────────────────────────────────────────────────────────
 app.get("/api/tree", handleTree(cfg));
 registerCLIProxyRoutes(app, cfg);
 registerAgentConfigRoutes(app, cfg);
+registerAppConfigRoutes(app, cfg);
+registerAutomationConfigRoutes(app, cfg);
+registerAutomationWorkspaceRoutes(app, cfg);
+registerHealthDomainRoutes(app, cfg);
 registerTaskPlanRoutes(app, cfg);
 registerLlmRoutes(app, cfg);
 registerSearchRoutes(app, cfg);
@@ -114,6 +135,9 @@ app.post("/api/remote-brain/push", handleRemoteBrainPush(cfg));
 app.post("/api/remote-brain/pull", handleRemoteBrainPull(cfg));
 app.post("/api/remote-brain/publish", handleRemoteBrainPublish(cfg));
 app.get("/api/page", handlePage(cfg));
+app.put("/api/page", handlePageSave(cfg));
+app.get("/api/page-side-image", handlePageSideImageMedia(cfg));
+app.post("/api/page-side-image", handlePageSideImageUpload(cfg));
 app.get("/api/raw", handleRaw(cfg));
 app.get("/api/log", handleActivityLog(cfg));
 app.get("/api/project-log", handleProjectLog(cfg));
@@ -122,6 +146,7 @@ app.delete("/api/project-log/workspace", handleProjectWorkspaceDelete(cfg));
 app.get("/api/workspace/docs", handleWorkspaceDocs(cfg));
 app.put("/api/workspace/docs", handleWorkspaceDocsSave(cfg));
 app.get("/api/flash-diary", handleFlashDiaryList(cfg));
+app.get("/api/flash-diary/memory", handleFlashDiaryMemory(cfg));
 app.get("/api/flash-diary/page", handleFlashDiaryPage(cfg));
 app.put("/api/flash-diary/page", handleFlashDiarySave(cfg));
 app.post("/api/flash-diary/entry", handleFlashDiaryAppend(cfg));
@@ -150,6 +175,9 @@ app.post("/api/import/xiaohongshu/start", handleXiaohongshuImportStart(cfg));
 app.get("/api/import/xiaohongshu/progress", handleXiaohongshuImportProgress(cfg));
 app.get("/api/import/douyin/cookie", handleDouyinCookieStatusGet(cfg));
 app.post("/api/import/douyin/cookie", handleDouyinCookieSave(cfg));
+app.get("/api/workspace/health/state", handleWorkspaceHealthState(cfg));
+app.post("/api/workspace/health/connection", handleWorkspaceHealthApiConnectionSave(cfg));
+app.post("/api/workspace/health/sync", handleWorkspaceHealthSync(cfg, unavailableHealthSyncRunner));
 app.get("/api/xhs-sync/status", handleXhsStatus(cfg));
 app.post("/api/xhs-sync/extract", handleXhsExtract(cfg));
 app.post("/api/xhs-sync/batch", handleXhsBatch(cfg));
@@ -220,6 +248,10 @@ app.listen(cfg.port, cfg.host, () => {
   console.log(`  source vault: ${cfg.sourceVaultRoot}`);
   console.log(`  runtime root: ${cfg.runtimeRoot}`);
   console.log(`  author:    ${cfg.author}`);
+});
+
+process.on("exit", () => {
+  memoryScheduler.dispose();
 });
 
 function loadProjectEnv(projectRoot: string): void {

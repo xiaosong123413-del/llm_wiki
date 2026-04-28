@@ -1,0 +1,84 @@
+{
+  "workflows": [
+    {
+      "id": "workflow-collect",
+      "entityType": "workflow",
+      "title": "资料收集流",
+      "summary": "收集候选资料并进入后续整理。",
+      "ratioLabel": "1:1",
+      "agentName": "收集 Agent",
+      "accent": "violet"
+    },
+    {
+      "id": "workflow-organize",
+      "entityType": "workflow",
+      "title": "内容整理流",
+      "summary": "把原始材料整理成可复用结构。",
+      "ratioLabel": "1:1",
+      "agentName": "整理 Agent",
+      "accent": "green"
+    },
+    {
+      "id": "workflow-retrieve",
+      "entityType": "workflow",
+      "title": "检索问答流",
+      "summary": "把索引能力接到问答与定位。",
+      "ratioLabel": "1:1",
+      "agentName": "检索 Agent",
+      "accent": "blue"
+    },
+    {
+      "id": "workflow-publish",
+      "entityType": "workflow",
+      "title": "编译发布流",
+      "summary": "整理输出并进入编译与发布结果。",
+      "ratioLabel": "1:1",
+      "agentName": "发布 Agent",
+      "accent": "orange"
+    }
+  ],
+  "assets": [],
+  "recentRuns": [
+    {
+      "id": "run-collect",
+      "agentName": "收集 Agent",
+      "ranAtLabel": "2 分钟前",
+      "accent": "green"
+    },
+    {
+      "id": "run-organize",
+      "agentName": "整理 Agent",
+      "ranAtLabel": "15 分钟前",
+      "accent": "pink"
+    },
+    {
+      "id": "run-publish",
+      "agentName": "发布 Agent",
+      "ranAtLabel": "1 小时前",
+      "accent": "orange"
+    },
+    {
+      "id": "run-retrieve",
+      "agentName": "检索 Agent",
+      "ranAtLabel": "昨天 16:20",
+      "accent": "blue"
+    }
+  ],
+  "favorites": [
+    {
+      "id": "favorite-notes",
+      "title": "想法速记",
+      "accent": "pink"
+    },
+    {
+      "id": "favorite-publish-template",
+      "title": "编译发布模板",
+      "accent": "orange"
+    },
+    {
+      "id": "favorite-review-checklist",
+      "title": "审校检查清单",
+      "accent": "green"
+    }
+  ]
+}

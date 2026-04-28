@@ -17,3 +17,4 @@ dist/gui/
 sources_full/
 raw_import_manifest.csv
 .llmwiki-batch-state.json
+.secrets/

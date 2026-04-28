@@ -4,11 +4,21 @@
  */
 
 /** A single concept extracted from a source by the LLM. */
+export type ClaimType = "decision" | "fact" | "pattern" | "incident" | "workflow";
+
+export interface ExtractedClaim {
+  claim_key?: string;
+  claim_text: string;
+  claim_type?: ClaimType;
+  observed_at?: string;
+}
+
 export interface ExtractedConcept {
   concept: string;
   summary: string;
   is_new: boolean;
   tags?: string[];
+  claims?: ExtractedClaim[];
 }
 
 /** Per-source entry in .llmwiki/state.json. */
@@ -20,11 +30,85 @@ export interface SourceState {
 
 /** Root shape of .llmwiki/state.json. */
 export interface WikiState {
-  version: 1;
+  version: 1 | 2;
   indexHash: string;
   sources: Record<string, SourceState>;
   /** Concept slugs frozen across batches to preserve content from deleted sources. */
   frozenSlugs?: string[];
+}
+
+export interface ClaimCandidate {
+  candidateId: string;
+  conceptSlug: string;
+  claimKey: string;
+  claimText: string;
+  claimType: ClaimType;
+  sourceFile: string;
+  episodeId: string;
+  observedAt: string;
+}
+
+export interface ClaimRecord {
+  id: string;
+  conceptSlug: string;
+  claimKey: string;
+  claimText: string;
+  claimType: ClaimType;
+  sourceFiles: string[];
+  episodeIds: string[];
+  firstSeenAt: string;
+  lastConfirmedAt: string;
+  lastAccessedAt?: string;
+  supportCount: number;
+  contradictionCount: number;
+  confidence: number;
+  retention: number;
+  status: "active" | "contested" | "superseded" | "stale";
+  supersedes: string[];
+  supersededBy?: string;
+  halfLifeDays: number;
+}
+
+export interface EpisodeRecord {
+  id: string;
+  sourceFile: string;
+  title: string;
+  sourceKind: string;
+  sourceChannel: string;
+  sourceUrl?: string;
+  observedAt: string;
+  summary: string;
+  conceptSlugs: string[];
+  candidateClaimIds: string[];
+  procedureIds: string[];
+}
+
+export interface ProcedureRecord {
+  id: string;
+  conceptSlug: string;
+  procedureKey: string;
+  title: string;
+  summary: string;
+  supportingClaimIds: string[];
+  sourceFiles: string[];
+  episodeIds: string[];
+  confidence: number;
+  lastConfirmedAt: string;
+}
+
+interface FinalCompileResult {
+  status: "succeeded" | "failed";
+  syncedMarkdownCount: number;
+  syncedAssetCount: number;
+  completedFilesCount: number;
+  internalBatchCount: number;
+  batchLimit: number;
+  claimsUpdated: number;
+  episodesUpdated: number;
+  proceduresUpdated: number;
+  wikiOutputDir: string;
+  publishedAt?: string;
+  error?: string;
 }
 
 /** Change detection result for a single source file. */

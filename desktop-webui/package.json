@@ -1,0 +1,23 @@
+{
+  "name": "llm-wiki-desktop-webui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron desktop shell for the LLM Wiki web UI.",
+  "author": "Administrator",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "npm run build && electron .",
+    "prepare:runtime": "node scripts/write-runtime-config.mjs",
+    "build": "npm run prepare:runtime && tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "electron": "^37.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "llm-wiki-compiler": "file:.."
+  }
+}
