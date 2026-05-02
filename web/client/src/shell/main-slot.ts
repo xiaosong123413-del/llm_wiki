@@ -1,13 +1,13 @@
 import type { Route } from "../router.js";
-import { renderAutomationLogPage, renderAutomationWorkspacePage } from "../pages/automation/index.js";
-import { renderGraphPage } from "../pages/graph/index.js";
 import { renderFlashDiaryPage } from "../pages/flash-diary/index.js";
+import { renderGraphPage } from "../pages/graph/index.js";
 import { renderReviewPage } from "../pages/review/index.js";
 import { renderRunPage } from "../pages/runs/index.js";
 import { renderSettingsPage } from "../pages/settings/index.js";
 import { renderSourcesPage } from "../pages/sources/index.js";
 import { renderWikiPage } from "../pages/wiki/index.js";
-import { renderProjectLogPage } from "../pages/project-log/index.js";
+import { renderAutomationLogPage, renderAutomationWorkspacePage } from "../pages/automation/index.js";
+import { renderWorkflowArtifactsPage } from "../pages/workflow-artifacts/index.js";
 import { renderWorkspacePage } from "../pages/workspace/index.js";
 import { renderPlaceholder } from "./placeholder.js";
 
@@ -39,6 +39,7 @@ const BROWSERLESS_ROUTES: ReadonlySet<RouteName> = new Set([
   "flash-diary",
   "automation",
   "automation-log",
+  "workflow-artifacts",
   "check",
   "sync",
 ]);
@@ -54,6 +55,7 @@ const FULL_PAGE_ROUTES: ReadonlySet<RouteName> = new Set([
   "flash-diary",
   "automation",
   "automation-log",
+  "workflow-artifacts",
 ]);
 
 export function createMainSlot(options: MainSlotOptions): MainSlotHandle {
@@ -110,6 +112,7 @@ function showLegacyChat(container: HTMLElement, legacyChatNode: HTMLElement): vo
   container.replaceChildren(legacyChatNode);
 }
 
+// fallow-ignore-next-line complexity
 function renderRoutePage(route: Route): HTMLElement {
   switch (route.name) {
     case "check":
@@ -121,18 +124,20 @@ function renderRoutePage(route: Route): HTMLElement {
       return renderAutomationWorkspacePage(route.params.id);
     case "automation-log":
       return renderAutomationLogPage(route.params.id);
+    case "workflow-artifacts":
+      return renderWorkflowArtifactsPage();
     case "review":
       return renderReviewPage();
-    case "graph":
-      return renderGraphPage();
     case "flash-diary":
       return renderFlashDiaryPage();
     case "sources":
       return renderSourcesPage();
+    case "graph":
+      return renderGraphPage();
     case "wiki":
       return renderWikiPage(route.params.path, route.anchor);
     case "project-log":
-      return renderProjectLogPage();
+      return renderSettingsPage("project-log");
     case "settings":
       return renderSettingsPage(route.params.section);
     default:
