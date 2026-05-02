@@ -73,10 +73,14 @@ export const CONCEPT_EXTRACTION_TOOL = {
 export function buildExtractionPrompt(
   sourceContent: string,
   existingIndex: string,
+  existingConceptBriefs = "",
 ): string {
   const indexSection = existingIndex
     ? `\n\n\u8fd9\u91cc\u662f\u73b0\u6709 wiki \u7d22\u5f15\uff0c\u8bf7\u907f\u514d\u91cd\u590d\u5df2\u7ecf\u8986\u76d6\u7684\u6982\u5ff5\uff1a\n\n${existingIndex}`
     : "\n\n\u5f53\u524d\u8fd8\u6ca1\u6709\u5df2\u6709 wiki \u9875\u9762\u3002";
+  const conceptSection = existingConceptBriefs
+    ? `\n\n\u5df2\u6709\u6982\u5ff5 brief\uff1a\n\n${existingConceptBriefs}`
+    : "";
 
   return [
     "\u4f60\u662f\u4e00\u4e2a\u4e2d\u6587\u77e5\u8bc6\u62bd\u53d6\u5f15\u64ce\u3002\u8bf7\u5206\u6790\u4e0b\u9762\u7684\u6e90\u6587\u6863\uff0c",
@@ -86,6 +90,7 @@ export function buildExtractionPrompt(
     "\u6807\u9898\u3001\u6458\u8981\u3001\u6807\u7b7e\u3001claims \u63cf\u8ff0\u4f18\u5148\u4f7f\u7528\u4e2d\u6587\u3002",
     "\u8bf7\u7528 extract_concepts \u5de5\u5177\u8fd4\u56de\u7ed3\u679c\u3002",
     indexSection,
+    conceptSection,
     "\n\n--- \u6e90\u6587\u6863 ---\n\n",
     sourceContent,
   ].join("\n");
