@@ -1,52 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" role="img" aria-label="wiki 阅读页与正文右浮动配图框">
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" role="img" aria-label="Wiki 文章页顶部含页面级 Graphy 图谱">
   <rect width="1120" height="560" fill="#f8f9fa"/>
   <rect x="0" y="0" width="236" height="560" fill="#f8f9fa" stroke="#a2a9b1"/>
-  <circle cx="118" cy="94" r="54" fill="url(#brand)"/>
-  <text x="118" y="112" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="58" fill="#202122">F</text>
-  <text x="118" y="164" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="20" fill="#202122">Farzapedia</text>
-  <text x="118" y="188" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#54595d">The Personal Encyclopedia</text>
+  <circle cx="118" cy="82" r="52" fill="url(#brand)"/>
+  <text x="118" y="101" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="56" fill="#202122">F</text>
+  <text x="118" y="150" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="19" fill="#202122">Peiweipedia</text>
+  <text x="118" y="172" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12" fill="#54595d">The Personal Encyclopedia</text>
+  <line x1="22" y1="205" x2="214" y2="205" stroke="#c8ccd1"/>
+  <text x="22" y="228" font-family="Segoe UI, sans-serif" font-size="13" fill="#54595d">NAVIGATION</text>
+  <text x="22" y="258" font-family="Segoe UI, sans-serif" font-size="16" fill="#0645ad">个人信息档案</text>
+  <text x="22" y="290" font-family="Segoe UI, sans-serif" font-size="16" fill="#0645ad">知识 Wiki</text>
+  <text x="22" y="322" font-family="Segoe UI, sans-serif" font-size="16" fill="#0645ad">案例库</text>
+  <text x="22" y="354" font-family="Segoe UI, sans-serif" font-size="16" fill="#0645ad">方法库</text>
 
   <rect x="236" y="0" width="884" height="560" fill="#ffffff"/>
-  <line x1="264" y1="110" x2="1088" y2="110" stroke="#a2a9b1"/>
-  <text x="264" y="60" font-family="Georgia, 'Times New Roman', serif" font-size="38" fill="#202122">赵宇馨｜亲密关系记忆页</text>
-  <text x="264" y="86" font-family="Segoe UI, sans-serif" font-size="14" fill="#54595d">wiki/journal-twelve-questions.md · Updated 2026/4/27</text>
+  <text x="270" y="38" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="#54595d">PEIWEIPEDIA</text>
+  <text x="270" y="78" font-family="Georgia, 'Times New Roman', serif" font-size="38" fill="#202122">Concept Index</text>
+  <text x="270" y="106" font-family="Segoe UI, sans-serif" font-size="13" fill="#54595d">Updated 2026/5/2</text>
+  <rect x="730" y="42" width="300" height="36" fill="#ffffff" stroke="#a2a9b1"/>
+  <text x="748" y="66" font-family="Georgia, 'Times New Roman', serif" font-size="15" fill="#54595d">Search Peiweipedia</text>
+  <rect x="1030" y="42" width="62" height="36" fill="#f8f9fa" stroke="#a2a9b1"/>
+  <text x="1061" y="66" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="15" fill="#202122">Search</text>
+  <line x1="270" y1="124" x2="1092" y2="124" stroke="#a2a9b1"/>
+  <text x="288" y="150" font-family="Segoe UI, sans-serif" font-size="14" fill="#202122">Article</text>
+  <text x="356" y="150" font-family="Segoe UI, sans-serif" font-size="14" fill="#0645ad">Talk</text>
+  <text x="930" y="150" font-family="Segoe UI, sans-serif" font-size="14" fill="#202122">Read</text>
+  <text x="982" y="150" font-family="Segoe UI, sans-serif" font-size="14" fill="#0645ad">目录</text>
+  <text x="1030" y="150" font-family="Segoe UI, sans-serif" font-size="14" fill="#0645ad">Comment</text>
 
-  <rect x="264" y="132" width="824" height="314" fill="#ffffff" stroke="#a2a9b1"/>
-  <text x="288" y="180" font-family="Georgia, 'Times New Roman', serif" font-size="30" fill="#202122">§ 1. 关系概览</text>
-  <line x1="288" y1="196" x2="1058" y2="196" stroke="#a2a9b1"/>
+  <rect x="270" y="172" width="822" height="142" fill="#ffffff" stroke="#a2a9b1"/>
+  <rect x="270" y="172" width="822" height="36" fill="#eaecf0" stroke="#a2a9b1"/>
+  <text x="288" y="196" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">Graphy</text>
+  <rect x="288" y="222" width="786" height="62" fill="#f8f9fa" stroke="#c8ccd1"/>
+  <line x1="488" y1="254" x2="596" y2="238" stroke="#64748b" stroke-width="2"/>
+  <line x1="596" y1="238" x2="704" y2="264" stroke="#64748b" stroke-width="2"/>
+  <line x1="596" y1="238" x2="806" y2="248" stroke="#64748b" stroke-width="1.6"/>
+  <circle cx="488" cy="254" r="16" fill="#111827"/>
+  <circle cx="596" cy="238" r="12" fill="#c084fc"/>
+  <circle cx="704" cy="264" r="10" fill="#60a5fa"/>
+  <circle cx="806" cy="248" r="9" fill="#fb923c"/>
+  <text x="488" y="236" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#202122">Concept Index</text>
+  <text x="596" y="220" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#202122">Memory</text>
+  <text x="704" y="246" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#202122">Second Brain</text>
+  <text x="806" y="230" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#202122">Workflow</text>
+  <text x="288" y="302" font-family="Segoe UI, sans-serif" font-size="12" fill="#54595d">3 个相关条目 · 3 条连接；只保留当前页直接相关节点和边</text>
 
-  <rect x="770" y="214" width="276" height="252" fill="#ffffff" stroke="#a2a9b1"/>
-  <text x="790" y="236" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#54595d">IMAGE</text>
-  <text x="790" y="264" font-family="Georgia, 'Times New Roman', serif" font-size="28" fill="#202122">页面配图</text>
-  <rect x="790" y="276" width="236" height="132" fill="url(#photo)" stroke="#c8ccd1"/>
-  <text x="908" y="430" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#54595d">这张图与当前页面绑定，可直接替换</text>
-  <rect x="790" y="442" width="92" height="30" fill="#f8f9fa" stroke="#a2a9b1"/>
-  <text x="836" y="462" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#202122">更换图片</text>
-
-  <text x="304" y="236" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 称呼：oiii / 宝宝</text>
-  <text x="304" y="272" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 关系类型：女朋友 / 亲密关系</text>
-  <text x="304" y="308" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 在一起日期：2024-10-27</text>
-  <text x="304" y="344" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 当前阶段：稳定亲密关系，已进入长期规划与高频陪伴阶段</text>
-  <text x="304" y="380" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 最近互动时间：2026-04-24</text>
-  <text x="304" y="416" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">• 下一步行动：持续陪伴、接送与反馈，准备生日长信</text>
-
-  <rect x="264" y="470" width="824" height="76" fill="#ffffff" stroke="#a2a9b1"/>
-  <rect x="264" y="470" width="264" height="32" fill="#eaecf0" stroke="#a2a9b1"/>
-  <text x="284" y="491" font-family="Segoe UI, sans-serif" font-size="18" fill="#202122">Categories</text>
-  <rect x="542" y="470" width="264" height="32" fill="#eaecf0" stroke="#a2a9b1"/>
-  <text x="562" y="491" font-family="Segoe UI, sans-serif" font-size="18" fill="#202122">Recently updated</text>
-  <rect x="824" y="470" width="264" height="32" fill="#eaecf0" stroke="#a2a9b1"/>
-  <text x="844" y="491" font-family="Segoe UI, sans-serif" font-size="18" fill="#202122">About</text>
+  <rect x="270" y="334" width="822" height="182" fill="#ffffff" stroke="#a2a9b1"/>
+  <text x="294" y="378" font-family="Georgia, 'Times New Roman', serif" font-size="30" fill="#202122">Concept Index</text>
+  <line x1="294" y1="394" x2="1068" y2="394" stroke="#a2a9b1"/>
+  <text x="294" y="432" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">This article opens with the page-local relationship map above the body.</text>
+  <text x="294" y="470" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#202122">The Graphy block is not the full wiki graph; unrelated pages stay hidden.</text>
 
   <defs>
     <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="100%" stop-color="#d8d8d8"/>
-    </linearGradient>
-    <linearGradient id="photo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#29354f"/>
-      <stop offset="50%" stop-color="#5d6a87"/>
-      <stop offset="100%" stop-color="#b96946"/>
     </linearGradient>
   </defs>
 </svg>
