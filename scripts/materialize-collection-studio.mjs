@@ -22,8 +22,8 @@ console.log(`[collection-studio] materialized ${path.relative(root, output)} (${
 
 /**
  * Give every inline icon an intrinsic size before page CSS is applied.
- * This prevents a host stylesheet or an early hydration frame from stretching
- * an icon-only SVG to the viewport, which appeared as a giant black plus sign.
+ * The inline max-size cap uses !important so a host stylesheet or an early
+ * hydration frame cannot stretch an icon-only SVG to the viewport.
  */
 function hardenInlineSvgSizing(value) {
   let html = value.replace(/<svg([^>]*)>/gi, (_tag, attributes) => {
@@ -31,12 +31,20 @@ function hardenInlineSvgSizing(value) {
     const height = readAttribute(attributes, "height") ?? width;
     const widthAttribute = readAttribute(attributes, "width") ? "" : ` width="${width}"`;
     const heightAttribute = readAttribute(attributes, "height") ? "" : ` height="${height}"`;
-    return `<svg${attributes}${widthAttribute}${heightAttribute}>`;
+    const safeStyle = "max-width:32px!important;max-height:32px!important;flex:none!important";
+    const existingStyle = readAttribute(attributes, "style");
+    const styledAttributes = existingStyle
+      ? attributes.replace(
+        /(?:^|\s)style\s*=\s*(["'])(.*?)\1/i,
+        (match, quote, style) => match.replace(`${quote}${style}${quote}`, `${quote}${style};${safeStyle}${quote}`),
+      )
+      : `${attributes} style="${safeStyle}"`;
+    return `<svg${styledAttributes}${widthAttribute}${heightAttribute}>`;
   });
 
   html = html.replace(
     "svg{display:block}",
-    "svg{display:block;max-width:100%;max-height:100%;flex:none}",
+    "svg{display:block;max-width:32px!important;max-height:32px!important;flex:none}",
   );
   html = html.replace(
     "</style>",
