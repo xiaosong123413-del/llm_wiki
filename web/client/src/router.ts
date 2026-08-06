@@ -12,12 +12,13 @@ export type RouteName =
   | "flash-diary"
   | "automation"
   | "automation-log"
+  | "workflow-artifacts"
+  | "graph"
   | "wiki"
   | "sources"
   | "check"
   | "sync"
   | "review"
-  | "graph"
   | "settings"
   | "project-log";
 
@@ -38,12 +39,13 @@ const ROUTE_TABLE: Record<string, RouteSpec> = {
   "flash-diary": { name: "flash-diary" },
   automation: { name: "automation", paramKey: "id" },
   "automation-log": { name: "automation-log", paramKey: "id" },
+  "workflow-artifacts": { name: "workflow-artifacts" },
+  graph: { name: "graph" },
   wiki: { name: "wiki", paramKey: "path" },
   sources: { name: "sources" },
   check: { name: "check" },
   sync: { name: "sync" },
   review: { name: "review", paramKey: "id" },
-  graph: { name: "graph" },
   settings: { name: "settings", paramKey: "section" },
   "project-log": { name: "project-log" },
 };

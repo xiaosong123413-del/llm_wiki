@@ -1,10 +1,156 @@
 .wiki-home-cover {
   height: 100%;
   min-height: 100%;
-  padding: 28px 32px 40px;
   box-sizing: border-box;
   background: #f8f9fa;
   color: #202122;
+  overflow: hidden;
+}
+
+.wiki-home-cover__layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.wiki-home-cover__sidebar {
+  min-height: 0;
+  padding: 18px 14px;
+  border-right: 1px solid #a2a9b1;
+  background: #f8f9fa;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.wiki-home-cover a {
+  color: #3366cc;
+}
+
+.wiki-home-cover a:hover {
+  color: #0645ad;
+}
+
+.wiki-home-cover__brand {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin-bottom: 18px;
+  text-align: center;
+  color: inherit !important;
+}
+
+.wiki-home-cover__brand:hover {
+  text-decoration: none !important;
+}
+
+.wiki-home-cover__mark {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: linear-gradient(#ffffff, #d8d8d8);
+  color: #202122;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 58px;
+}
+
+.wiki-home-cover__brand strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+}
+
+.wiki-home-cover__brand span {
+  font-size: 12px;
+}
+
+.wiki-home-cover__sidebar-section {
+  border-top: 1px solid #c8ccd1;
+  padding: 10px 0;
+}
+
+.wiki-home-cover__sidebar-section h2 {
+  margin: 0 0 8px;
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wiki-home-cover__sidebar-links {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.wiki-home-cover__sidebar-links a,
+.wiki-home-cover__sidebar-links span {
+  display: block;
+}
+
+.wiki-home-cover__path-tree,
+.wiki-home-cover__path-tree ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.wiki-home-cover__path-tree ul {
+  padding-left: 12px;
+}
+
+.wiki-home-cover__path-tree summary {
+  color: #202122;
+  font-weight: 700;
+  cursor: context-menu;
+}
+
+.wiki-home-cover__path-page {
+  display: block;
+  align-items: center;
+  cursor: context-menu;
+}
+
+.wiki-home-cover__path-page a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-home-cover__sidebar-category {
+  padding: 8px 0;
+}
+
+.wiki-home-cover__sidebar-category + .wiki-home-cover__sidebar-category {
+  border-top: 1px solid #c8ccd1;
+}
+
+.wiki-home-cover__sidebar-category h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wiki-home-cover__sidebar-category ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.wiki-home-cover__sidebar-category li {
+  margin-bottom: 6px;
+}
+
+.wiki-home-cover__main {
+  min-width: 0;
+  min-height: 0;
+  padding: 28px 32px 40px;
+  background: #f8f9fa;
   overflow-y: auto;
 }
 
@@ -76,6 +222,17 @@
   font-weight: 700;
 }
 
+.wiki-home-cover__panel-title-link {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.wiki-home-cover__panel-title-link:hover,
+.wiki-home-cover__panel-title-link:focus-visible {
+  color: #0645ad !important;
+  text-decoration: underline !important;
+}
+
 .wiki-home-cover__panel--featured h2,
 .wiki-home-cover__panel--recent h2 {
   background: #cedff2;
@@ -83,6 +240,10 @@
 
 .wiki-home-cover__panel--categories h2 {
   background: #dfeecb;
+}
+
+.wiki-home-cover__panel--graph h2 {
+  background: #f8e7b4;
 }
 
 .wiki-home-cover__panel--about h2 {
@@ -99,21 +260,59 @@
 }
 
 .wiki-home-cover__panel--recent,
+.wiki-home-cover__panel--graph,
 .wiki-home-cover__panel--about {
   grid-column: 2;
 }
 
+.wiki-home-cover__panel--featured,
+.wiki-home-cover__panel--recent {
+  grid-row: 1;
+}
+
+.wiki-home-cover__panel--categories,
+.wiki-home-cover__panel--graph {
+  grid-row: 2;
+}
+
+.wiki-home-cover__panel--about {
+  grid-row: 3;
+}
+
+.wiki-home-cover__graph-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  height: 280px;
+  min-height: 280px;
+  border: 1px solid #c8ccd1;
+  background: #f8f9fa;
+}
+
+.wiki-home-cover__graph-stage canvas {
+  inset: 0;
+}
+
+.wiki-home-cover__graph-meta {
+  margin-top: 8px;
+  color: #54595d;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .wiki-home-cover__featured-card {
   display: grid;
-  grid-template-columns: 176px minmax(0, 1fr);
+  grid-template-columns: minmax(168px, 220px) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .wiki-home-cover__featured-media {
   display: grid;
   place-items: center;
-  min-height: 130px;
+  aspect-ratio: 4 / 3;
+  min-height: 0;
   border: 1px solid #c8ccd1;
   background: #f8f9fa;
   overflow: hidden;
@@ -129,7 +328,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: 130px;
+  height: 100%;
   background: linear-gradient(180deg, #eaf3ff 0%, #f5faff 100%);
   color: #3366cc;
   font-size: 38px;
@@ -148,11 +347,17 @@
 
 .wiki-home-cover__featured-copy p,
 .wiki-home-cover__empty,
+.wiki-home-cover__placeholder,
 .wiki-home-cover__panel--about .wiki-home-cover__panel-body {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 18px;
   line-height: 1.65;
+}
+
+.wiki-home-cover__placeholder {
+  color: #54595d;
+  font-size: 13px;
 }
 
 .wiki-home-cover__panel--about .wiki-home-cover__panel-body {
@@ -163,7 +368,7 @@
   display: inline-block;
   margin-top: 14px;
   font-weight: 700;
-  color: #0645ad;
+  color: #3366cc;
 }
 
 .wiki-home-cover__recent-list,
@@ -211,8 +416,770 @@
   line-height: 1.6;
 }
 
+/* ── Search bar ─────────────────────────────────────────────────────────── */
+
+.wiki-home-cover__search {
+  display: flex;
+  gap: 0;
+  width: min(560px, 100%);
+  margin-top: 8px;
+  border: 1px solid #a2a9b1;
+  border-radius: 2px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.wiki-home-cover__search:focus-within {
+  border-color: #3366cc;
+  box-shadow: 0 0 0 1px #3366cc;
+}
+
+.wiki-home-cover__search input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: none;
+  outline: none;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  background: transparent;
+}
+
+.wiki-home-cover__search button[type="submit"] {
+  padding: 10px 20px;
+  border: none;
+  border-left: 1px solid #a2a9b1;
+  background: #f8f9fa;
+  color: #202122;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wiki-home-cover__search button[type="submit"]:hover {
+  background: #eaecf0;
+}
+
+/* ── Search results ─────────────────────────────────────────────────────── */
+
+.wiki-home-cover__search-status {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.wiki-home-cover__search-status p {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  line-height: 1.6;
+  color: #54595d;
+}
+
+.wiki-home-cover__search-status button {
+  padding: 8px 20px;
+  border: 1px solid #a2a9b1;
+  background: #fff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.wiki-home-cover__search-status button:hover {
+  background: #f8f9fa;
+}
+
+.wiki-home-cover__search-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.wiki-home-cover__search-header h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.wiki-home-cover__search-header span {
+  color: #54595d;
+  font-size: 15px;
+}
+
+.wiki-home-cover__search-header button {
+  margin-left: auto;
+  padding: 6px 16px;
+  border: 1px solid #a2a9b1;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.wiki-home-cover__search-header button:hover {
+  background: #f8f9fa;
+}
+
+.wiki-home-cover__search-results {
+  display: grid;
+  gap: 14px;
+}
+
+.wiki-home-cover__search-result {
+  padding: 16px;
+  border: 1px solid #a2a9b1;
+  background: #fff;
+}
+
+.wiki-home-cover__search-result h3 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+}
+
+.wiki-home-cover__search-result p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #202122;
+}
+
+.wiki-home-cover__search-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #54595d;
+}
+
+.wiki-home-cover__search-meta code {
+  font-size: 12px;
+  color: #3366cc;
+}
+
+.wiki-home-cover__search-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid #c8ccd1;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.graphy-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 100%;
+  padding: 24px 28px;
+  box-sizing: border-box;
+  color: #202122;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.graphy-page__header {
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #a2a9b1;
+}
+
+.graphy-page__back,
+.graphy-page__insights-button,
+.graphy-page__mode button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #a2a9b1;
+  background: #f8f9fa;
+  color: #202122;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.graphy-page__insights-button {
+  margin-left: auto;
+}
+
+.graphy-page__mode {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.graphy-page__mode button + button {
+  border-left: 0;
+}
+
+.graphy-page__mode button.is-active {
+  background: #3366cc;
+  color: #ffffff;
+}
+
+.graphy-page__back:hover,
+.graphy-page__back:focus-visible,
+.graphy-page__insights-button:hover,
+.graphy-page__insights-button:focus-visible,
+.graphy-page__mode button:hover,
+.graphy-page__mode button:focus-visible {
+  background: #eaecf0;
+}
+
+.graphy-page__mode button.is-active:hover,
+.graphy-page__mode button.is-active:focus-visible {
+  background: #0645ad;
+}
+
+.graphy-page__eyebrow {
+  margin: 0;
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.graphy-page h1 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.graphy-page__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+  padding-top: 18px;
+}
+
+.graphy-page--preview-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+}
+
+.graphy-page--insights-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+}
+
+.graphy-page--research-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+}
+
+.graphy-page--preview-open.graphy-page--insights-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) minmax(320px, 420px);
+}
+
+.graphy-page--insights-open.graphy-page--research-open .graphy-page__main,
+.graphy-page--preview-open.graphy-page--research-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) minmax(320px, 420px);
+}
+
+.graphy-page--preview-open.graphy-page--insights-open.graphy-page--research-open .graphy-page__main {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px) minmax(280px, 340px) minmax(320px, 420px);
+}
+
+.graphy-page__graph-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.graphy-page__graph {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.graphy-page__legend {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 2;
+  width: min(260px, calc(100% - 28px));
+  max-height: min(340px, calc(100% - 28px));
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid #a2a9b1;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(32, 33, 34, 0.16);
+}
+
+.graphy-page__legend h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.graphy-page__legend-list {
+  display: grid;
+  gap: 4px;
+}
+
+.graphy-page__legend-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  color: #54595d;
+  font-size: 12px;
+}
+
+.graphy-page__legend-row span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graphy-page__legend-row strong {
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.graphy-page__legend-row em {
+  color: #b45309;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.graphy-page__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.graphy-page .wiki-home-cover__graph-stage {
+  height: 100%;
+  min-height: 0;
+}
+
+.graphy-page__preview,
+.graphy-page__insights,
+.graphy-research-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #a2a9b1;
+  background: #ffffff;
+}
+
+.graphy-insights__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #a2a9b1;
+  background: #f8f9fa;
+}
+
+.graphy-insights__header h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.graphy-insights__status,
+.graphy-insights__empty {
+  margin: 0;
+  color: #54595d;
+  font-size: 14px;
+}
+
+.graphy-insights__status {
+  margin: 14px 16px 0;
+  padding: 8px 10px;
+  border: 1px solid #c8ccd1;
+  background: #f8f9fa;
+}
+
+.graphy-insights__section {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.graphy-insights__section h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.graphy-insight-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #c8ccd1;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.graphy-insight-card.is-active,
+.graphy-insight-card:focus-within {
+  border-color: #3366cc;
+  box-shadow: inset 3px 0 0 #3366cc;
+}
+
+.graphy-insight-card p,
+.graphy-insight-card ul {
+  margin: 0;
+  color: #54595d;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.graphy-insight-card__title {
+  margin: 0;
+  color: #202122;
+  font-weight: 700;
+}
+
+.graphy-insight-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.graphy-insight-card__heading button {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #c8ccd1;
+  background: #ffffff;
+  color: #54595d;
+  cursor: pointer;
+}
+
+.graphy-insight-card__heading button:hover,
+.graphy-insight-card__heading button:focus-visible {
+  background: #eaecf0;
+  color: #202122;
+}
+
+.graphy-insight-card__meta,
+.graphy-insight-card__suggestion {
+  font-size: 12px;
+}
+
+.graphy-insight-card .btn-inline {
+  justify-self: start;
+}
+
+.graphy-research-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.graphy-research-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(32, 33, 34, 0.45);
+}
+
+.graphy-research-dialog__panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  width: min(620px, 100%);
+  max-height: min(720px, calc(100vh - 40px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid #a2a9b1;
+  background: #ffffff;
+  box-shadow: 0 16px 42px rgba(32, 33, 34, 0.28);
+}
+
+.graphy-research-dialog__panel h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.graphy-research-dialog__panel label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.graphy-research-dialog__panel textarea {
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid #a2a9b1;
+  padding: 8px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.graphy-research-dialog__panel p {
+  margin: 0;
+  color: #54595d;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.graphy-research-dialog__panel footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.graphy-research-panel__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 14px 16px;
+  border-bottom: 1px solid #a2a9b1;
+  background: #f8f9fa;
+}
+
+.graphy-research-panel__header h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.graphy-research-task {
+  display: grid;
+  gap: 10px;
+  margin: 16px;
+  padding: 12px;
+  border: 1px solid #c8ccd1;
+  background: #ffffff;
+}
+
+.graphy-research-task header {
+  display: grid;
+  gap: 4px;
+}
+
+.graphy-research-task h3,
+.graphy-research-task p,
+.graphy-research-task ul {
+  margin: 0;
+}
+
+.graphy-research-task h3 {
+  font-size: 15px;
+}
+
+.graphy-research-task p,
+.graphy-research-task li,
+.graphy-research-task__body,
+.graphy-research-task__think {
+  color: #54595d;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.graphy-research-task ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+}
+
+.graphy-research-task__synthesis {
+  display: grid;
+  gap: 8px;
+  max-height: min(42vh, 420px);
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #eaecf0;
+  background: #f8f9fa;
+}
+
+.graphy-research-task__body {
+  white-space: pre-wrap;
+}
+
+.graphy-research-task__think {
+  border: 1px solid #c8ccd1;
+  background: #ffffff;
+}
+
+.graphy-research-task__think summary {
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.graphy-research-task__think pre {
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+.graphy-research-task__error {
+  color: #b32424;
+}
+
+.graphy-research-task__result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #54595d;
+  font-size: 12px;
+}
+
+.graphy-page__preview-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #a2a9b1;
+  background: #f8f9fa;
+}
+
+.graphy-page__preview-header h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.graphy-page__preview-header p:last-child {
+  margin: 6px 0 0;
+  color: #54595d;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.graphy-page__preview-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #a2a9b1;
+  background: #ffffff;
+  color: #202122;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.graphy-page__preview-close:hover,
+.graphy-page__preview-close:focus-visible {
+  background: #eaecf0;
+}
+
+.graphy-page__preview-content {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.graphy-page__meta-card,
+.graphy-page__article {
+  border: 1px solid #c8ccd1;
+  background: #ffffff;
+}
+
+.graphy-page__meta-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.graphy-page__meta-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.graphy-page__meta-row > span {
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.graphy-page__meta-row > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.graphy-page__meta-row strong,
+.graphy-page__meta-row code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.graphy-page__meta-row code {
+  padding: 2px 6px;
+  border: 1px solid #c8ccd1;
+  background: #f8f9fa;
+}
+
+.graphy-page__article {
+  padding: 16px;
+}
+
+.graphy-page__article.markdown-rendered h1,
+.graphy-page__article.markdown-rendered h2,
+.graphy-page__article.markdown-rendered h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.graphy-page__article.markdown-rendered h1 {
+  margin: 0 0 0.5em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #a2a9b1;
+  font-size: 26px;
+}
+
+.graphy-page__article.markdown-rendered h2 {
+  margin-top: 1.1em;
+  font-size: 22px;
+}
+
+.graphy-page__article.markdown-rendered p,
+.graphy-page__article.markdown-rendered li {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.graphy-page__preview-empty {
+  margin: 0;
+  color: #54595d;
+  font-size: 14px;
+}
+
 @media (max-width: 1160px) {
-  .wiki-home-cover {
+  .wiki-home-cover__main {
     padding: 24px 20px 28px;
   }
 
@@ -231,13 +1198,23 @@
   .wiki-home-cover__panel--featured,
   .wiki-home-cover__panel--categories,
   .wiki-home-cover__panel--recent,
+  .wiki-home-cover__panel--graph,
   .wiki-home-cover__panel--about {
     grid-column: auto;
+    grid-row: auto;
   }
 }
 
 @media (max-width: 720px) {
-  .wiki-home-cover {
+  .wiki-home-cover__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-home-cover__sidebar {
+    display: none;
+  }
+
+  .wiki-home-cover__main {
     padding: 20px 14px 24px;
   }
 
@@ -261,5 +1238,31 @@
   .wiki-home-cover__featured-media,
   .wiki-home-cover__featured-fallback {
     min-height: 180px;
+  }
+
+  .wiki-home-cover__graph-stage {
+    height: 220px;
+    min-height: 220px;
+  }
+
+  .graphy-page {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+  .graphy-page--preview-open .graphy-page__main,
+  .graphy-page--insights-open .graphy-page__main,
+  .graphy-page--research-open .graphy-page__main,
+  .graphy-page--preview-open.graphy-page--insights-open .graphy-page__main,
+  .graphy-page--insights-open.graphy-page--research-open .graphy-page__main,
+  .graphy-page--preview-open.graphy-page--research-open .graphy-page__main,
+  .graphy-page--preview-open.graphy-page--insights-open.graphy-page--research-open .graphy-page__main {
+    grid-template-columns: 1fr;
+  }
+
+  .graphy-page .wiki-home-cover__graph-stage {
+    height: 420px;
+    min-height: 320px;
   }
 }

@@ -47,6 +47,14 @@ describe("parseHash", () => {
     expect(parseHash("#/workspace")).toEqual({ name: "workspace", params: {} });
   });
 
+  it("does not expose task pool as a top-level route", () => {
+    expect(parseHash("#/task-pool")).toEqual({ name: "chat", params: {} });
+  });
+
+  it("parses graph as a top-level route", () => {
+    expect(parseHash("#/graph")).toEqual({ name: "graph", params: {} });
+  });
+
   it("parses workspace child routes", () => {
     expect(parseHash("#/workspace/toolbox/assets")).toEqual({
       name: "workspace",

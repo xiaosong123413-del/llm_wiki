@@ -1,9 +1,18 @@
 /**
- * Farzapedia-style wiki reader for the main web UI.
+ * Peiweipedia-style wiki reader for the main web UI.
  */
 import { renderAboutMeProfilePage } from "./about-me-profile.js";
 import { renderWikiHomeCoverPage } from "./home-cover.js";
+import { isWikiSourceLikePath } from "./home-tree.js";
+import { renderIdentityInfoProfilePage } from "./identity-info-profile.js";
+import { enhanceCaseLibraryPage } from "./case-library.js";
+import { enhancePersonalTimelinePage } from "./personal-timeline.js";
+import { enhanceWikiRelationGraphs } from "./relation-graph.js";
+import { clearWikiPageGraph, disposeWikiPageGraph, mountWikiPageGraph } from "./page-graph.js";
+import { createWikiLinkPreviewController } from "./link-preview.js";
 import { createWikiPageSideImageController } from "./side-image.js";
+import { bindWikiPathCopy } from "./path-copy.js";
+import { bindWikiPathOrder, sortWikiSidebarTree } from "./path-order.js";
 import {
   createWikiCommentSurface,
   type WikiCommentSurfaceController,
@@ -20,6 +29,7 @@ import {
   type PanelWidthBounds,
 } from "../../shell/panel-layout.js";
 import { attachResizeHandle } from "../../shell/resize-handle.js";
+import { bindPageSearchShortcut } from "../../search-shortcut.js";
 
 interface WikiPageResponse {
   path: string;
@@ -68,6 +78,13 @@ interface WikiSearchResult {
   excerpt: string;
   tags: string[];
   modifiedAt: string | null;
+  images?: WikiSearchImage[];
+  retrievalSources?: string[];
+}
+
+interface WikiSearchImage {
+  alt: string;
+  url: string;
 }
 
 interface WikiSearchResponse {
@@ -94,7 +111,8 @@ type DisposableNode = HTMLElement & {
 };
 
 const DEFAULT_INDEX_PATH = "wiki/index.md";
-const ABOUT_ME_PATH = "wiki/about-me.md";
+const ABOUT_ME_PATH = "wiki/个人信息档案/about-me.md";
+const IDENTITY_INFO_PATH = "wiki/个人信息档案/个人身份信息档案.md";
 const wikiPageTimers = new WeakMap<HTMLElement, Set<number>>();
 const WIKI_TOC_BOUNDS: PanelWidthBounds = {
   defaultWidth: 320,
@@ -102,12 +120,16 @@ const WIKI_TOC_BOUNDS: PanelWidthBounds = {
   maxWidth: 480,
 };
 
+// fallow-ignore-next-line complexity
 export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor = ""): HTMLElement {
   if (initialPath === DEFAULT_INDEX_PATH) {
     return renderWikiHomeCoverPage(initialPath);
   }
   if (initialPath === ABOUT_ME_PATH) {
     return renderAboutMeProfilePage(initialPath);
+  }
+  if (initialPath === IDENTITY_INFO_PATH) {
+    return renderIdentityInfoProfilePage(initialPath);
   }
   const root = document.createElement("section") as DisposableNode;
   wikiPageTimers.set(root, new Set());
@@ -118,7 +140,7 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
     <aside class="wiki-page__sidebar">
       <a class="wiki-page__brand" data-wiki-brand-link href="${wikiHref(ABOUT_ME_PATH)}">
         <div class="wiki-page__mark">F</div>
-        <strong>Farzapedia</strong>
+        <strong>Peiweipedia</strong>
         <span>The Personal Encyclopedia</span>
       </a>
       <section class="wiki-page__sidebar-section">
@@ -129,7 +151,7 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
           <a href="${wikiHref(DEFAULT_INDEX_PATH)}">Random article</a>
         </nav>
       </section>
-      <section class="wiki-page__sidebar-section">
+      <section class="wiki-page__sidebar-section" hidden>
         <h2>Categories</h2>
         <nav class="wiki-page__sidebar-links" data-wiki-sidebar-categories>
           <span class="wiki-page__placeholder">Loading categories...</span>
@@ -140,12 +162,12 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
       <div class="wiki-page__chrome" data-wiki-chrome>
         <header class="wiki-page__header">
           <div class="wiki-page__header-copy">
-            <div class="wiki-page__eyebrow">FARZAPEDIA</div>
+            <div class="wiki-page__eyebrow">PEIWEIPEDIA</div>
             <h1 data-wiki-title>Wiki</h1>
             <p class="wiki-page__subtitle">The Personal Encyclopedia</p>
           </div>
           <form class="wiki-page__search" data-wiki-search>
-            <input data-wiki-search-input type="search" placeholder="Search Farzapedia" autocomplete="off" />
+            <input data-wiki-search-input type="search" placeholder="Search Peiweipedia" autocomplete="off" />
             <button type="submit">Search</button>
           </form>
           <a class="wiki-page__open" data-wiki-open-current href="${wikiHref(initialPath)}">\u6253\u5f00 wiki</a>
@@ -163,7 +185,7 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
         </nav>
       </div>
       <div class="wiki-page__body" data-wiki-body>
-        <section class="wiki-page__lead">
+        <section class="wiki-page__lead" hidden>
           <div>
             <div class="wiki-page__article-path" data-wiki-path>wiki/index.md</div>
             <p class="wiki-page__article-meta" data-wiki-meta>Loading article...</p>
@@ -175,9 +197,10 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
           <button type="button" class="wiki-page__tab-action" data-wiki-selection-cancel>取消</button>
         </div>
         <div class="wiki-page__article-layout">
+          <section class="wiki-page__graph" data-wiki-page-graph hidden></section>
           <article class="wiki-page__article markdown-rendered" data-wiki-article>
             <div class="wiki-page__empty-state">
-              <h2>Loading Farzapedia...</h2>
+              <h2>Loading Peiweipedia...</h2>
               <p>The personal encyclopedia is preparing the default article.</p>
             </div>
           </article>
@@ -227,7 +250,7 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
           <section class="wiki-page__module wiki-page__module--about">
             <h2>About</h2>
             <div class="wiki-page__module-body" data-wiki-about>
-              <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
+        <p>Peiweipedia is the local Wikipedia-style reader for the compiled wiki.</p>
             </div>
           </section>
         </section>
@@ -238,7 +261,9 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
   const refs = getRefs(root);
   const controller = new AbortController();
   const comments = createCommentsSurface(refs);
+  const linkPreview = createWikiLinkPreviewController(root);
   const disposeToc = bindWikiToc(root, refs);
+  const disposeSearchShortcut = bindPageSearchShortcut(root, () => refs.article);
   const sideImage = createWikiPageSideImageController({
     refs: { article: refs.article },
     onUploaded: async () => {
@@ -258,11 +283,17 @@ export function renderWikiPage(initialPath = DEFAULT_INDEX_PATH, initialAnchor =
   });
 
   root.__dispose = () => {
+    disposeSearchShortcut();
     controller.abort();
     disposeToc();
+    linkPreview.dispose();
     selectionToolbar.dispose();
+    disposeWikiPageGraph(root);
     clearWikiPageTimers(root);
   };
+  bindWikiPathCopy(root);
+  bindWikiPathOrder(root);
+  // fallow-ignore-next-line complexity
   root.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
     const renderedWikilink = target.closest<HTMLAnchorElement>("a.wikilink");
@@ -343,6 +374,7 @@ async function runWikiSearch(
     refs.path.textContent = "/api/search";
     refs.meta.textContent = "Searching local wiki, raw, sources_full, and vector index...";
     refs.article.innerHTML = `<div class="wiki-page__placeholder">Searching...</div>`;
+    clearWikiPageGraph(root, refs.pageGraph);
 
     const response = await fetch(
       `/api/search?scope=local&mode=hybrid&q=${encodeURIComponent(query)}`,
@@ -357,6 +389,7 @@ async function runWikiSearch(
       renderWikiTableOfContents(root, refs, []);
       selectionToolbar.reset();
       sideImage.setDocument(null);
+      clearWikiPageGraph(root, refs.pageGraph);
       comments.clear("搜索结果不支持评论。");
   } catch {
     if (signal.aborted) return;
@@ -370,14 +403,16 @@ async function runWikiSearch(
     renderWikiTableOfContents(root, refs, []);
     selectionToolbar.reset();
     sideImage.setDocument(null);
+    clearWikiPageGraph(root, refs.pageGraph);
     comments.clear("搜索结果不支持评论。");
   }
 }
 
 function renderSearchResults(refs: ReturnType<typeof getRefs>, query: string, results: WikiSearchResult[]): void {
+  const images = collectSearchImages(results, query);
   refs.title.textContent = `搜索：${query}`;
   refs.path.textContent = "/api/search";
-  refs.meta.textContent = `${results.length} local result${results.length === 1 ? "" : "s"}`;
+  refs.meta.textContent = `${results.length} local result${results.length === 1 ? "" : "s"} · ${images.length} image${images.length === 1 ? "" : "s"}`;
   refs.article.innerHTML = results.length === 0
     ? `
       <div class="wiki-page__empty-state">
@@ -386,6 +421,7 @@ function renderSearchResults(refs: ReturnType<typeof getRefs>, query: string, re
       </div>
     `
     : `
+      ${images.length ? renderSearchImages(images) : ""}
       <section class="wiki-page__search-results">
         ${results.map((result) => `
           <article class="wiki-page__search-result">
@@ -393,6 +429,7 @@ function renderSearchResults(refs: ReturnType<typeof getRefs>, query: string, re
             <p>${escapeHtml(result.excerpt || result.path)}</p>
             <div class="wiki-page__search-meta">
               <code>${escapeHtml(result.path)}</code>
+              ${renderRetrievalSourceBadges(result.retrievalSources)}
               ${result.modifiedAt ? `<span>${escapeHtml(formatDate(result.modifiedAt))}</span>` : ""}
               ${result.tags.slice(0, 4).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
             </div>
@@ -402,6 +439,50 @@ function renderSearchResults(refs: ReturnType<typeof getRefs>, query: string, re
     `;
 }
 
+function renderRetrievalSourceBadges(sources: string[] | undefined): string {
+  return (sources ?? []).map((source) =>
+    `<span class="wiki-page__search-source">${escapeHtml(formatRetrievalSource(source))}</span>`
+  ).join("");
+}
+
+function formatRetrievalSource(source: string): string {
+  if (source === "token") return "token";
+  if (source === "vector") return "vector";
+  if (source === "graph") return "graph";
+  return source;
+}
+
+function collectSearchImages(results: WikiSearchResult[], query: string): Array<WikiSearchImage & { pagePath: string; pageTitle: string; direct: boolean }> {
+  const seen = new Set<string>();
+  const normalizedQuery = query.trim().toLowerCase();
+  return results.flatMap((result) => (result.images ?? []).map((image) => ({
+    ...image,
+    pagePath: result.path,
+    pageTitle: result.title,
+    direct: normalizedQuery.length > 0 && image.alt.toLowerCase().includes(normalizedQuery),
+  }))).filter((image) => {
+    const key = `${image.pagePath}\n${image.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => Number(b.direct) - Number(a.direct)).slice(0, 12);
+}
+
+function renderSearchImages(images: Array<WikiSearchImage & { pagePath: string; pageTitle: string; direct: boolean }>): string {
+  return `
+    <section class="wiki-page__search-images" aria-label="Search result images">
+      ${images.map((image) => `
+        <a class="wiki-page__search-image" href="${wikiHref(image.pagePath)}" title="${escapeHtml(image.pagePath)}">
+          <img src="${escapeHtml(toMediaUrl(image.url))}" alt="${escapeHtml(image.alt || image.pageTitle)}" loading="lazy" />
+          <span>${escapeHtml(image.alt || image.pageTitle)}</span>
+          <small>${escapeHtml(image.direct ? "caption match" : image.pageTitle)}</small>
+        </a>
+      `).join("")}
+    </section>
+  `;
+}
+
+// fallow-ignore-next-line complexity
 async function loadWikiPage(
   root: DisposableNode,
   refs: ReturnType<typeof getRefs>,
@@ -421,11 +502,12 @@ async function loadWikiPage(
 
     selectionToolbar.reset();
     if (page) {
-      await applyLoadedWikiArticle(root, refs, page, comments, selectionToolbar, sideImage, initialAnchor);
+      await applyLoadedWikiArticle(root, refs, page, signal, comments, selectionToolbar, sideImage, initialAnchor);
     } else {
       renderEmptyState(refs);
       renderWikiTableOfContents(root, refs, []);
       sideImage.setDocument(null);
+      clearWikiPageGraph(root, refs.pageGraph);
       comments.clear("当前页面还没有可评论正文。");
     }
 
@@ -440,6 +522,7 @@ async function loadWikiPage(
     selectionToolbar.reset();
     renderWikiTableOfContents(root, refs, []);
     sideImage.setDocument(null);
+    clearWikiPageGraph(root, refs.pageGraph);
     comments.clear("当前页面还没有可评论正文。");
   }
 }
@@ -575,7 +658,7 @@ function renderPageData(refs: ReturnType<typeof getRefs>, data: WikiPageData): v
   refs.categories.innerHTML = renderDirectoryList(data.categories, "No categories indexed yet");
   refs.recent.innerHTML = renderRecentList(data.recentlyUpdated);
   refs.about.innerHTML = `
-    <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
+    <p>Peiweipedia is the local Wikipedia-style reader for the compiled wiki.</p>
     <p>It opens <code>wiki/index.md</code> by default and keeps the reading surface separate from the chat shell.</p>
   `;
 }
@@ -588,18 +671,23 @@ function renderArticleData(refs: ReturnType<typeof getRefs>, article: WikiPageRe
       <p>This page exists, but it does not contain rendered article content yet.</p>
     </div>
     `;
+  enhanceWikiRelationGraphs(refs.article);
+  enhancePersonalTimelinePage(refs.article, article.path);
+  enhanceCaseLibraryPage(refs.article, article.path);
 }
 
 async function applyLoadedWikiArticle(
   root: DisposableNode,
   refs: ReturnType<typeof getRefs>,
   page: WikiPageResponse,
+  signal: AbortSignal,
   comments: WikiCommentSurfaceController,
   selectionToolbar: WikiSelectionToolbarController,
   sideImage: ReturnType<typeof createWikiPageSideImageController>,
   initialAnchor = "",
 ): Promise<void> {
   renderArticleData(refs, page);
+  mountWikiPageGraph(root, refs.pageGraph, page.path, signal);
   sideImage.setDocument(page);
   renderWikiTableOfContents(root, refs);
   scrollToWikiAnchor(root, refs.article, initialAnchor);
@@ -611,6 +699,7 @@ async function applyLoadedWikiArticle(
       root.dataset.wikiCurrentPath = confirmedPage.path;
       root.dataset.wikiCurrentAnchor = "";
       updatePageChrome(refs, confirmedPage);
+      mountWikiPageGraph(root, refs.pageGraph, confirmedPage.path, signal);
       sideImage.setDocument(confirmedPage);
       renderWikiTableOfContents(root, refs);
       selectionToolbar.reset();
@@ -631,18 +720,18 @@ async function refreshCurrentWikiPage(
   if (!page || signal.aborted) {
     return;
   }
-  await applyLoadedWikiArticle(root, refs, page, comments, selectionToolbar, sideImage);
+  await applyLoadedWikiArticle(root, refs, page, signal, comments, selectionToolbar, sideImage);
 }
 
 function renderWikiTreeData(refs: ReturnType<typeof getRefs>, tree: WikiTreeNode | null): void {
   const treePages = flattenTree(tree);
   const categories = buildCategories(tree);
-  refs.navigation.innerHTML = renderLinks(buildNavigation(treePages));
+    refs.navigation.innerHTML = renderPathTree(sortWikiSidebarTree(tree));
   refs.sidebarCategories.innerHTML = renderDirectoryList(categories, "No categories yet");
   refs.categories.innerHTML = renderDirectoryList(categories, "No categories indexed yet");
   refs.recent.innerHTML = renderRecentList(buildRecentPages(treePages));
   refs.about.innerHTML = `
-    <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
+    <p>Peiweipedia is the local Wikipedia-style reader for the compiled wiki.</p>
     <p>It opens <code>wiki/index.md</code> by default and keeps the reading surface separate from the chat shell.</p>
   `;
 }
@@ -657,7 +746,7 @@ function renderEmptyState(refs: ReturnType<typeof getRefs>): void {
       <h2>This page does not exist yet.</h2>
       <p>Compile the wiki to generate <code>wiki/index.md</code> and restore the reading view.</p>
       <ul>
-        <li>Farzapedia / The Personal Encyclopedia layout stays intact.</li>
+        <li>Peiweipedia / The Personal Encyclopedia layout stays intact.</li>
         <li>Article and Talk tabs remain available.</li>
         <li>Navigation, Categories, Recently updated, and About sections still render.</li>
       </ul>
@@ -670,7 +759,7 @@ function renderEmptyState(refs: ReturnType<typeof getRefs>): void {
   refs.categories.innerHTML = `<div class="wiki-page__placeholder">No categories indexed yet</div>`;
   refs.recent.innerHTML = `<div class="wiki-page__placeholder">No recent pages yet</div>`;
   refs.about.innerHTML = `
-    <p>Farzapedia is the local Wikipedia-style reader for the compiled wiki.</p>
+    <p>Peiweipedia is the local Wikipedia-style reader for the compiled wiki.</p>
     <p>When the default article is missing, the page still stays structured instead of collapsing into plain text.</p>
   `;
 }
@@ -688,6 +777,7 @@ function getRefs(root: HTMLElement) {
     path: root.querySelector<HTMLElement>("[data-wiki-path]")!,
     meta: root.querySelector<HTMLElement>("[data-wiki-meta]")!,
     article: root.querySelector<HTMLElement>("[data-wiki-article]")!,
+    pageGraph: root.querySelector<HTMLElement>("[data-wiki-page-graph]")!,
     categories: root.querySelector<HTMLElement>("[data-wiki-categories]")!,
     recent: root.querySelector<HTMLElement>("[data-wiki-recent]")!,
     about: root.querySelector<HTMLElement>("[data-wiki-about]")!,
@@ -828,6 +918,7 @@ function flattenTree(tree: WikiTreeNode | null): WikiPageLink[] {
   const nodes: WikiPageLink[] = [];
   const visit = (node: WikiTreeNode): void => {
     if (node.kind === "file") {
+      if (isWikiSourceLikePath(node.path)) return;
       nodes.push({
         path: node.path,
         title: pageTitleFromPath(node.name, node.name),
@@ -843,14 +934,10 @@ function flattenTree(tree: WikiTreeNode | null): WikiPageLink[] {
   return nodes;
 }
 
-function buildNavigation(paths: WikiPageLink[]): WikiPageLink[] {
-  return paths.slice(0, 8);
-}
-
 function buildCategories(tree: WikiTreeNode | null): WikiDirectory[] {
   const children = tree?.children?.find((child) => child.kind === "dir" && child.name === "wiki")?.children ?? tree?.children ?? [];
   return children
-    .filter((child) => child.kind === "dir")
+    .filter((child) => child.kind === "dir" && !isWikiSourceLikePath(child.path))
     .slice(0, 4)
     .map((child) => ({
       name: pageTitleFromPath(child.path, child.name),
@@ -873,6 +960,44 @@ function renderLinks(items: WikiPageLink[]): string {
       (item) => `<a href="${wikiHref(item.path)}" title="${escapeHtml(item.path)}">${escapeHtml(item.title)}</a>`,
     )
     .join("");
+}
+
+function renderPathTree(tree: WikiTreeNode | null): string {
+  const root = findWikiContentRoot(tree);
+  if (!root) {
+    return `<div class="wiki-page__placeholder">No navigation items yet</div>`;
+  }
+  return `<ul class="wiki-page__path-tree">${renderPathNodes(root.children ?? [], root.path)}</ul>`;
+}
+
+function renderPathNodes(nodes: readonly WikiTreeNode[], parentPath: string): string {
+  return nodes.filter((node) => !isWikiSourceLikePath(node.path)).map((node) => {
+    if (node.kind === "dir") {
+      return `
+        <li data-wiki-path-item="${escapeHtml(node.path)}" data-wiki-parent-path="${escapeHtml(parentPath)}" draggable="true">
+          <details open>
+            <summary data-wiki-path-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">
+              ${escapeHtml(pageTitleFromPath(node.path, node.name))}
+            </summary>
+            <ul>${renderPathNodes(node.children ?? [], node.path)}</ul>
+          </details>
+        </li>
+      `;
+    }
+    return `
+      <li class="wiki-page__path-page" data-wiki-path-item="${escapeHtml(node.path)}" data-wiki-parent-path="${escapeHtml(parentPath)}" data-wiki-path-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}" draggable="true">
+        <a href="${wikiHref(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(pageTitleFromPath(node.name, node.name))}</a>
+      </li>
+    `;
+  }).join("");
+}
+
+function findWikiContentRoot(tree: WikiTreeNode | null): WikiTreeNode | null {
+  if (!tree) return null;
+  if (tree.path === "wiki" && tree.kind === "dir") {
+    return (tree.children ?? []).find((child) => child.path === "wiki" && child.kind === "dir") ?? tree;
+  }
+  return tree;
 }
 
 function renderDirectoryList(items: WikiDirectory[], emptyLabel: string): string {
@@ -959,6 +1084,14 @@ function cssEscape(value: string): string {
 function wikiHref(path: string, anchor?: string): string {
   const route = `#/wiki/${encodeURIComponent(path)}`;
   return anchor ? `${route}#${encodeURIComponent(anchor)}` : route;
+}
+
+function toMediaUrl(url: string): string {
+  const trimmed = url.trim();
+  if (/^(https?:\/\/|data:image\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `/api/source-gallery/media?path=${encodeURIComponent(trimmed.replace(/^\/+/, ""))}`;
 }
 
 function parseWikiHref(href: string): { path: string; anchor: string } | null {

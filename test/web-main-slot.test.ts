@@ -12,6 +12,7 @@ describe("createMainSlot", () => {
         <aside id="browser-slot"></aside>
       </section>
     `;
+    vi.stubGlobal("EventSource", createSilentEventSourceStub());
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -27,6 +28,12 @@ describe("createMainSlot", () => {
         }
         if (url.includes("/api/source-gallery")) {
           return jsonResponse(makeSourceGalleryPayload());
+        }
+        if (url.includes("/api/automation-workspace/code-flow-sync-entry")) {
+          return jsonResponse(makeAutomationDetailPayload());
+        }
+        if (url.includes("/api/automation-workspace")) {
+          return jsonResponse(makeAutomationListPayload());
         }
         if (url.includes("/api/project-log")) {
           return jsonResponse(makeProjectLogPayload());
@@ -95,25 +102,6 @@ describe("createMainSlot", () => {
     expect(container.querySelector(".review-board")).toBeTruthy();
   });
 
-  it("shows graph as a full page without the file browser or chat layout", () => {
-    const container = document.getElementById("main-slot") as HTMLElement;
-    const legacyChatNode = document.getElementById("legacy-chat") as HTMLElement;
-    const legacyBrowser = document.getElementById("browser-slot") as HTMLElement;
-    const shell = document.getElementById("workspace-shell") as HTMLElement;
-    const slot = createMainSlot({ container, legacyChatNode, legacyBrowser });
-
-    slot.render({ name: "graph", params: {} });
-
-    expect(legacyChatNode.hidden).toBe(true);
-    expect(container.contains(legacyChatNode)).toBe(false);
-    expect(container.children).toHaveLength(1);
-    expect(legacyBrowser.hidden).toBe(true);
-    expect(shell.getAttribute("data-route")).toBe("graph");
-    expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
-    expect(shell.hasAttribute("data-full-page")).toBe(true);
-    expect(container.querySelector(".graph-stage")).toBeTruthy();
-  });
-
   it("shows wiki as a full page without the file browser or chat layout", () => {
     const container = document.getElementById("main-slot") as HTMLElement;
     const legacyChatNode = document.getElementById("legacy-chat") as HTMLElement;
@@ -132,6 +120,26 @@ describe("createMainSlot", () => {
     expect(shell.hasAttribute("data-full-page")).toBe(true);
     expect(container.querySelector("[data-wiki-home]")).toBeTruthy();
     expect(container.textContent).toContain("欢迎来到 Peiweipedia");
+  });
+
+  it("shows Graphy as a full page with a return button", () => {
+    const container = document.getElementById("main-slot") as HTMLElement;
+    const legacyChatNode = document.getElementById("legacy-chat") as HTMLElement;
+    const legacyBrowser = document.getElementById("browser-slot") as HTMLElement;
+    const shell = document.getElementById("workspace-shell") as HTMLElement;
+    const slot = createMainSlot({ container, legacyChatNode, legacyBrowser });
+
+    slot.render({ name: "graph", params: {} });
+
+    expect(legacyChatNode.hidden).toBe(true);
+    expect(container.contains(legacyChatNode)).toBe(false);
+    expect(container.children).toHaveLength(1);
+    expect(legacyBrowser.hidden).toBe(true);
+    expect(shell.getAttribute("data-route")).toBe("graph");
+    expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
+    expect(shell.hasAttribute("data-full-page")).toBe(true);
+    expect(container.querySelector(".graphy-page")).toBeTruthy();
+    expect(container.querySelector("[data-graphy-back]")?.textContent).toContain("返回");
   });
 
   it("shows sources as a full page without the file browser or chat layout", () => {
@@ -190,7 +198,26 @@ describe("createMainSlot", () => {
     expect(shell.getAttribute("data-route")).toBe("project-log");
     expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
     expect(shell.hasAttribute("data-full-page")).toBe(true);
+    expect(container.querySelector('[data-settings-nav="project-log"]')?.getAttribute("data-active")).toBe("true");
     expect(container.querySelector(".project-log-page__title")?.textContent).toContain("\u9879\u76ee\u65e5\u5fd7");
+  });
+
+  it("shows workflow detail as a full page without the settings sidebar", async () => {
+    const container = document.getElementById("main-slot") as HTMLElement;
+    const legacyChatNode = document.getElementById("legacy-chat") as HTMLElement;
+    const legacyBrowser = document.getElementById("browser-slot") as HTMLElement;
+    const shell = document.getElementById("workspace-shell") as HTMLElement;
+    const slot = createMainSlot({ container, legacyChatNode, legacyBrowser });
+
+    slot.render({ name: "automation", params: { id: "code-flow-sync-entry" } });
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(legacyChatNode.hidden).toBe(true);
+    expect(legacyBrowser.hidden).toBe(true);
+    expect(shell.getAttribute("data-route")).toBe("automation");
+    expect(container.querySelector(".automation-detail__header")).toBeTruthy();
+    expect(container.querySelector(".settings-sidebar")).toBeNull();
   });
 
   it("shows workspace as a full page without the file browser or chat layout", () => {
@@ -210,7 +237,8 @@ describe("createMainSlot", () => {
     expect(shell.hasAttribute("data-browser-hidden")).toBe(true);
     expect(shell.hasAttribute("data-full-page")).toBe(true);
     expect(container.querySelector("[data-workspace-sidebar]")).toBeTruthy();
-    expect(container.querySelector("[data-workspace-sidebar-toggle]")).toBeTruthy();
+    expect(container.querySelector("[data-workspace-sidebar-toggle]")).toBeNull();
+    expect(container.querySelector(".workspace-page__sidebar-nav > :first-child")?.getAttribute("data-workspace-tab")).toBe("project-progress");
     expect(container.querySelector("[data-workspace-tab='project-progress']")?.getAttribute("data-active")).toBe("true");
   });
 
@@ -350,6 +378,69 @@ function makeProjectLogPayload() {
   };
 }
 
+function makeAutomationListPayload() {
+  return {
+    success: true,
+    data: {
+      automations: [
+        {
+          id: "code-flow-sync-entry",
+          name: "同步入口",
+          summary: "真实同步入口分支。",
+          icon: "rocket",
+          enabled: true,
+          trigger: "message",
+          sourceKind: "code",
+        },
+      ],
+    },
+  };
+}
+
+function makeAutomationDetailPayload() {
+  return {
+    success: true,
+    data: {
+      automation: {
+        id: "code-flow-sync-entry",
+        name: "同步入口",
+        summary: "真实同步入口分支。",
+        icon: "rocket",
+        enabled: true,
+        trigger: "message",
+        sourceKind: "code",
+        viewMode: "flow",
+        flow: {
+          nodes: [
+            {
+              id: "trigger-sync",
+              type: "trigger",
+              title: "点击同步按钮",
+              description: "源码入口",
+              implementation: "bindRunPage() startButton.click",
+              effectiveModel: { provider: "", model: "", source: "none", label: "" },
+            },
+            {
+              id: "sync-run",
+              type: "action",
+              title: "启动同步",
+              description: "POST /api/runs/sync",
+              implementation: "startRun('sync')",
+              effectiveModel: { provider: "", model: "", source: "none", label: "" },
+            },
+          ],
+          edges: [{ id: "edge-trigger-sync", source: "trigger-sync", target: "sync-run" }],
+          branches: [],
+        },
+        comments: [],
+        layout: { automationId: "code-flow-sync-entry", branchOffsets: {} },
+      },
+      comments: [],
+      layout: { automationId: "code-flow-sync-entry", branchOffsets: {} },
+    },
+  };
+}
+
 async function flushMicrotasks(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -359,4 +450,30 @@ function jsonResponse(payload: unknown): Response {
     status: 200,
     headers: { "content-type": "application/json" },
   });
+}
+
+function createSilentEventSourceStub(): typeof EventSource {
+  class SilentEventSource {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSED = 2;
+
+    readonly url: string;
+    readonly withCredentials = false;
+    readyState = SilentEventSource.OPEN;
+
+    constructor(url: string | URL) {
+      this.url = String(url);
+    }
+
+    addEventListener(): void {}
+
+    removeEventListener(): void {}
+
+    close(): void {
+      this.readyState = SilentEventSource.CLOSED;
+    }
+  }
+
+  return SilentEventSource as unknown as typeof EventSource;
 }

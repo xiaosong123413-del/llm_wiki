@@ -87,6 +87,131 @@
   display: block;
 }
 
+.wiki-page__path-tree,
+.wiki-page__path-tree ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.wiki-page__path-tree ul {
+  padding-left: 12px;
+}
+
+.wiki-page__path-tree summary {
+  color: #202122;
+  font-weight: 700;
+  cursor: context-menu;
+}
+
+.wiki-page__path-page {
+  display: block;
+  align-items: center;
+  cursor: context-menu;
+}
+
+.wiki-page__path-page a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-wiki-path-item] {
+  border-radius: 4px;
+}
+
+[data-wiki-path-item].is-dragging {
+  opacity: 0.45;
+}
+
+[data-wiki-path-item].is-drop-target {
+  box-shadow: inset 0 2px 0 #3366cc;
+}
+
+.wiki-path-copy-menu {
+  position: fixed;
+  z-index: 120;
+  display: grid;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid rgba(208, 213, 221, 0.9);
+  border-radius: 8px;
+  background: rgba(250, 250, 250, 0.98);
+  box-shadow: 0 18px 44px rgba(32, 33, 34, 0.18);
+  color: #2f3437;
+  font-size: 14px;
+}
+
+.wiki-path-copy-menu button {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-path-copy-menu button:hover,
+.wiki-path-copy-menu button:focus-visible {
+  background: #ececec;
+  outline: none;
+}
+
+.wiki-path-copy-menu__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 16px;
+  gap: 8px;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.wiki-path-copy-menu__icon {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #6b7280;
+  border-radius: 3px;
+  box-shadow: 3px -3px 0 -1px #fafafa, 3px -3px 0 0 #6b7280;
+}
+
+.wiki-path-copy-menu__arrow {
+  color: #6b7280;
+  text-align: right;
+}
+
+.wiki-path-copy-menu__submenu {
+  position: absolute;
+  top: 6px;
+  left: calc(100% - 4px);
+  display: none;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid rgba(208, 213, 221, 0.9);
+  border-radius: 8px;
+  background: rgba(250, 250, 250, 0.98);
+  box-shadow: 0 18px 44px rgba(32, 33, 34, 0.16);
+}
+
+.wiki-path-copy-menu:hover .wiki-path-copy-menu__submenu,
+.wiki-path-copy-menu:focus-within .wiki-path-copy-menu__submenu {
+  display: grid;
+  gap: 2px;
+}
+
+.wiki-path-copy-menu__submenu button {
+  padding: 0 12px;
+}
+
+.wiki-path-copy-menu__submenu span {
+  min-height: 16px;
+  color: #54595d;
+  font-size: 12px;
+}
+
 .wiki-page__main {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -217,6 +342,61 @@
 
 .wiki-page__article-layout {
   margin-top: 16px;
+}
+
+.wiki-page__graph {
+  margin-bottom: 16px;
+}
+
+.wiki-page__graph[hidden] {
+  display: none;
+}
+
+.wiki-page__graph-card {
+  overflow: hidden;
+  border: 1px solid #a2a9b1;
+  background: #ffffff;
+}
+
+.wiki-page__graph-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid #a2a9b1;
+  background: #eaecf0;
+}
+
+.wiki-page__graph-header h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.wiki-page__graph-body {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.wiki-page__graph-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  height: 220px;
+  min-height: 220px;
+  border: 1px solid #c8ccd1;
+  background: #f8f9fa;
+}
+
+.wiki-page__graph-stage canvas {
+  inset: 0;
+}
+
+.wiki-page__graph-meta,
+.wiki-page__graph-placeholder {
+  margin: 0;
+  color: #54595d;
+  font-size: 13px;
 }
 
 .wiki-page__selection-toolbar {
@@ -468,6 +648,541 @@
 
 .wiki-page__article.markdown-rendered ul {
   padding-left: 20px;
+}
+
+.wiki-page__article.markdown-rendered a {
+  color: #3366cc;
+}
+
+.wiki-page__article.markdown-rendered a:hover {
+  color: #0645ad;
+}
+
+.personal-timeline {
+  display: grid;
+  gap: 16px;
+  margin: 22px 0 28px;
+}
+
+.personal-timeline__filters {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) minmax(220px, 1fr) minmax(200px, 260px);
+  gap: 18px;
+  align-items: stretch;
+  padding: 12px 14px;
+  border: 1px solid #e1e7f0;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(32, 33, 34, 0.06);
+}
+
+.personal-timeline__filter-group,
+.personal-timeline__search-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.personal-timeline__filter-group + .personal-timeline__filter-group,
+.personal-timeline__search-panel {
+  padding-left: 18px;
+  border-left: 1px solid #edf1f6;
+}
+
+.personal-timeline__filter-group > span,
+.personal-timeline__search-panel label > span {
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.personal-timeline__source-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.personal-timeline__source-head span {
+  color: #54595d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.personal-timeline__source-head button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.personal-timeline__button-row,
+.personal-timeline__theme-scroll,
+.personal-timeline__source-scroll {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.personal-timeline__theme-scroll,
+.personal-timeline__source-scroll {
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+.personal-timeline__filters button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 15px;
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #344767;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.personal-timeline__filters button.is-active {
+  border-color: #2f6df6;
+  background: #2f6df6;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(47, 109, 246, 0.18);
+}
+
+.personal-timeline__filters button.has-entry {
+  border-color: #a7d8bf;
+  background: #f3fbf6;
+  color: #1f7a4d;
+}
+
+.personal-timeline__filters button.has-no-entry {
+  border-color: #e2e6ee;
+  background: #f8f9fb;
+  color: #718096;
+}
+
+.personal-timeline__filters button.has-entry.is-active,
+.personal-timeline__filters button.has-no-entry.is-active {
+  border-color: #2f6df6;
+  background: #2f6df6;
+  color: #ffffff;
+}
+
+.personal-timeline__filters button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.personal-timeline__source-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(32, 33, 34, 0.18);
+}
+
+.personal-timeline__source-modal[hidden] {
+  display: none;
+}
+
+.personal-timeline__source-dialog {
+  display: grid;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 48px));
+  padding: 16px;
+  border: 1px solid #dce4ef;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(32, 33, 34, 0.18);
+}
+
+.personal-timeline__source-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.personal-timeline__source-dialog ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.personal-timeline__source-dialog li,
+.personal-timeline__source-dialog div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.personal-timeline__source-dialog code {
+  min-width: 0;
+  overflow: hidden;
+  color: #344767;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personal-timeline__source-dialog input {
+  min-width: 0;
+  height: 34px;
+  flex: 1 1 auto;
+  padding: 0 10px;
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+}
+
+.personal-timeline__source-dialog textarea {
+  width: 100%;
+  min-height: 150px;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+  resize: vertical;
+  color: #202122;
+  font: inherit;
+}
+
+.personal-timeline__source-dialog button {
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.personal-timeline__source-empty {
+  color: #718096;
+  font-size: 13px;
+}
+
+.personal-timeline__source-editor-status {
+  min-height: 18px;
+  margin: 0;
+  color: #54595d;
+  font-size: 12px;
+}
+
+.personal-timeline__source-status {
+  display: grid;
+  gap: 6px;
+  color: #54595d;
+  font-size: 12px;
+}
+
+.personal-timeline__source-status[hidden] {
+  display: none;
+}
+
+.personal-timeline__source-status.is-done {
+  color: #1f7a4d;
+}
+
+.personal-timeline__source-status.is-failed {
+  color: #b32424;
+}
+
+.personal-timeline__source-status div {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9eef6;
+}
+
+.personal-timeline__source-status i {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f6df6;
+  animation: personal-timeline-progress 1s ease-in-out infinite;
+}
+
+.personal-timeline__source-status.is-done i {
+  width: 100%;
+  background: #1f7a4d;
+  animation: none;
+  transform: none;
+}
+
+.pending-timeline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pending-timeline-actions button,
+.pending-timeline-modal button {
+  min-height: 30px;
+  border: 1px solid #c8d4e4;
+  border-radius: 6px;
+  background: #fff;
+  color: #24364d;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pending-timeline-actions button {
+  padding: 0 10px;
+}
+
+.pending-timeline-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgb(32 33 36 / 30%);
+}
+
+.pending-timeline-modal[hidden] {
+  display: none;
+}
+
+.pending-timeline-modal__dialog {
+  display: grid;
+  width: min(520px, calc(100vw - 32px));
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d8e0eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pending-timeline-modal__dialog header,
+.pending-timeline-modal__dialog footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pending-timeline-modal__dialog textarea {
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid #c8d4e4;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+
+@keyframes personal-timeline-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.personal-timeline__search-panel label {
+  display: grid;
+  gap: 8px;
+}
+
+.personal-timeline__search-panel input {
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dce4ef;
+  border-radius: 6px;
+  color: #202122;
+  font: inherit;
+}
+
+.personal-timeline__view {
+  display: none;
+}
+
+.personal-timeline__view.is-active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 20px;
+  align-items: start;
+}
+
+.personal-timeline__facts,
+.personal-timeline__rail {
+  min-width: 0;
+}
+
+.personal-timeline__facts {
+  display: grid;
+  gap: 12px;
+}
+
+.personal-timeline__facts h2,
+.personal-timeline__rail h2 {
+  margin-top: 0 !important;
+}
+
+.personal-timeline__facts table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.personal-timeline__facts th,
+.personal-timeline__facts td {
+  word-break: break-word;
+}
+
+.personal-timeline__rail {
+  padding: 16px;
+  border: 1px solid #a2a9b1;
+  background: #ffffff;
+}
+
+.personal-timeline__rail-list {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  max-height: min(520px, 62vh);
+  overflow-y: auto;
+  padding: 0 6px 0 16px;
+}
+
+.personal-timeline__rail-list::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 1px;
+  background: #c8ccd1;
+}
+
+.personal-timeline__rail-item {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #c8ccd1;
+  background: #f8f9fa;
+}
+
+.personal-timeline__rail-item::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: -18px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #3366cc;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.personal-timeline__rail-item span {
+  color: #54595d;
+  font-size: 12px;
+}
+
+.personal-timeline__rail-item strong {
+  color: #202122;
+  font-size: 15px;
+}
+
+.personal-timeline__rail-item em {
+  color: #3366cc;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.personal-timeline__empty {
+  margin: 0;
+  color: #54595d;
+  font-size: 14px;
+}
+
+.wiki-link-preview {
+  position: fixed;
+  z-index: 80;
+  width: 420px;
+  height: 360px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #c8ccd1;
+  border-radius: 2px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(32, 33, 34, 0.22);
+}
+
+.wiki-link-preview::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-right: 1px solid #c8ccd1;
+  border-bottom: 1px solid #c8ccd1;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.wiki-link-preview__image {
+  height: 190px;
+  overflow: hidden;
+  border-bottom: 1px solid #eaecf0;
+  background: #f8f9fa;
+}
+
+.wiki-link-preview__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wiki-link-preview__image-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #3366cc;
+  font-size: 68px;
+  font-weight: 700;
+  background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 100%);
+}
+
+.wiki-link-preview__body {
+  height: 170px;
+  box-sizing: border-box;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+
+.wiki-link-preview__body h2 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.wiki-link-preview__body p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  color: #202122;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.wiki-link-preview__empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 20px;
+  color: #54595d;
+  font-size: 14px;
 }
 
 .wiki-page__article.markdown-rendered .wiki-page__anchor-target {
@@ -1346,8 +2061,41 @@
     margin: 8px 0 16px;
   }
 
+  .personal-timeline__view.is-active {
+    grid-template-columns: 1fr;
+  }
+
+  .personal-timeline__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .personal-timeline__filter-group + .personal-timeline__filter-group,
+  .personal-timeline__search-panel {
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: 0;
+    border-top: 1px solid #edf1f6;
+  }
+
+  .personal-timeline__rail-list {
+    max-height: 360px;
+  }
+
   .wiki-page__selection-toolbar {
     max-width: calc(100vw - 48px);
+  }
+
+  .wiki-link-preview {
+    width: min(340px, calc(100vw - 28px));
+    height: 320px;
+  }
+
+  .wiki-link-preview__image {
+    height: 160px;
+  }
+
+  .wiki-link-preview__body {
+    height: 160px;
   }
 
   .wiki-page__comments {

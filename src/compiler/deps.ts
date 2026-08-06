@@ -21,6 +21,9 @@ export interface ExtractionResult {
   sourceFile: string;
   sourcePath: string;
   sourceContent: string;
+  summaryContent: string;
+  summaryLinkTarget: string;
+  summaryWikiPath: string;
   concepts: ExtractedConcept[];
 }
 

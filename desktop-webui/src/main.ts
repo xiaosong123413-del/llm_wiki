@@ -8,20 +8,38 @@ import os from "node:os";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { buildFlashDiaryCaptureDataUrl } from "./flash-diary-capture.js";
+import { registerFlashDiaryMediaHandlers } from "./flash-diary-media.js";
 import { buildFlashDiarySubmission } from "./flash-diary-submit.js";
+import {
+  clipPageWithSmartClip,
+  stopSmartClipMcpClient,
+  type SmartClipMcpClipResult,
+} from "./smartclip-mcp-client.js";
 import {
   normalizeDesktopSyncCompileConfig,
   type SyncCompileConfig,
 } from "./sync-config.js";
+import {
+  WORKSPACE_METADATA_RELATIVE_PATH,
+  ensureWorkspaceBinding,
+  normalizeOwnerUserId,
+  type WorkspaceMetadata,
+} from "./workspace-identity.js";
+import { buildWorkflowRecorderCaptureDataUrl } from "./workflow-recorder-capture.js";
 
 type StartupState = "UNCONFIGURED" | "CONFIGURING" | "INITIALIZING" | "READY";
 
 interface AppConfig {
+  accountIdentifier: string;
+  accountUserId: string;
+  accountServiceUrl: string;
+  accountSession: AccountSessionConfig;
   targetRepoPath: string;
   sourceFolders: string[];
   initialized: boolean;
+  workspaceId?: string;
   keyboardShortcuts?: AppShortcuts;
   lastSyncAt?: string;
   lastCompileAt?: string;
@@ -29,6 +47,15 @@ interface AppConfig {
 
 interface AppShortcuts {
   flashDiaryCapture: string;
+  pageTextSearch: string;
+  workflowRecorder: string;
+  workspaceSave: string;
+}
+
+interface AccountSessionConfig {
+  accountId: string;
+  token: string;
+  expiresAt: string;
 }
 
 interface RuntimeConfig {
@@ -55,14 +82,56 @@ interface AppBootstrap {
 }
 
 interface InitializePayload {
+  accountIdentifier: string;
+  accountPassword?: string;
+  authMode?: "login" | "register" | "wechat";
   targetRepoPath: string;
   sourceFolders: string[];
+}
+
+interface WeChatInitializePayload {
+  targetRepoPath: string;
+  sourceFolders: string[];
+}
+
+interface WeChatSessionInitializePayload extends WeChatInitializePayload {
+  accountSession: AccountSessionConfig;
+}
+
+interface WeChatMiniLoginPollPayload {
+  loginId: string;
+  pollToken: string;
 }
 
 interface FlashDiaryEntryPayload {
   target?: "flash-diary" | "clipping";
   text: string;
   mediaPaths: string[];
+  clippingUrl?: string;
+  clippingComment?: string;
+}
+
+interface SmartClipSubmissionBody {
+  url: string;
+  body: string;
+  now: string;
+  mediaPaths: string[];
+}
+
+interface DesktopSubmissionResult {
+  success: boolean;
+  error?: string;
+  data?: {
+    path?: string;
+    status?: string;
+    warnings?: string[];
+  };
+}
+
+interface WorkflowRecorderPayload {
+  text: string;
+  attachments: string[];
+  marker: "normal" | "issue" | "resolved" | "end-node";
 }
 
 interface ShortcutSavePayload {
@@ -74,6 +143,18 @@ interface ShortcutStatus {
   shortcuts: AppShortcuts;
   registered: boolean;
   error?: string;
+}
+
+interface BrowserOpenResult {
+  ok: boolean;
+  browser?: string;
+  error?: string;
+}
+
+interface BrowserLaunchCandidate {
+  name: string;
+  command: string;
+  args: string[];
 }
 
 interface ImportedCookieResult {
@@ -114,12 +195,10 @@ interface DouyinCaptureProbeResult {
   videoUrls: string[];
 }
 
-interface ClipSubmissionBody {
-  url: string;
-  body?: string;
-  quality?: "720";
-  now: string;
-  desktopCapture?: DouyinDesktopCapture;
+interface AppConfigValidation {
+  valid: boolean;
+  reason?: string;
+  workspaceMetadata?: WorkspaceMetadata;
 }
 
 const DEFAULT_WEB_PORT = 4175;
@@ -135,7 +214,16 @@ const DOUYIN_SESSION_PARTITION = "persist:llm-wiki-douyin";
 const DOUYIN_CAPTURE_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 const DEFAULT_SHORTCUTS: AppShortcuts = {
   flashDiaryCapture: "CommandOrControl+Shift+J",
+  pageTextSearch: "Ctrl+F",
+  workflowRecorder: "CommandOrControl+Shift+E",
+  workspaceSave: "CommandOrControl+S",
 };
+const WORKFLOW_RECORDER_WINDOW_SIZE = {
+  width: 960,
+  height: 860,
+  minWidth: 900,
+  minHeight: 820,
+} as const;
 
 let cacheHeadersInstalled = false;
 let activeWebPort = DEFAULT_WEB_PORT;
@@ -143,6 +231,7 @@ let serverUrl = buildServerUrl(activeWebPort);
 
 let mainWindow: BrowserWindow | null = null;
 let flashDiaryCaptureWindow: BrowserWindow | null = null;
+let workflowRecorderWindow: BrowserWindow | null = null;
 let xiaohongshuLoginWindow: BrowserWindow | null = null;
 let douyinLoginWindow: BrowserWindow | null = null;
 let webServerProcess: ChildProcess | null = null;
@@ -179,6 +268,7 @@ async function createWindow(): Promise<void> {
   debugLog("createWindow:start");
   desktopConfig = buildDesktopConfig();
   debugLog(`projectRoot=${desktopConfig.projectRoot}`);
+  await configureDesktopNetwork(desktopConfig.projectRoot);
   appBootstrap = loadAppBootstrap(desktopConfig);
   activeStartupState = appBootstrap.startupState;
   debugLog(`startupState=${activeStartupState} targetVault=${desktopConfig.targetVault}`);
@@ -255,6 +345,44 @@ async function showFlashDiaryCaptureWindow(): Promise<void> {
   flashDiaryCaptureWindow.focus();
 }
 
+async function showWorkflowRecorderCaptureWindow(): Promise<void> {
+  if (workflowRecorderWindow && !workflowRecorderWindow.isDestroyed()) {
+    workflowRecorderWindow.show();
+    workflowRecorderWindow.focus();
+    return;
+  }
+
+  workflowRecorderWindow = new BrowserWindow({
+    width: WORKFLOW_RECORDER_WINDOW_SIZE.width,
+    height: WORKFLOW_RECORDER_WINDOW_SIZE.height,
+    minWidth: WORKFLOW_RECORDER_WINDOW_SIZE.minWidth,
+    minHeight: WORKFLOW_RECORDER_WINDOW_SIZE.minHeight,
+    resizable: false,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    autoHideMenuBar: true,
+    title: "\u6267\u884c\u8bb0\u5f55\u5668",
+    icon: resolveDesktopIconPath(),
+    backgroundColor: "#00000000",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  workflowRecorderWindow.on("closed", () => {
+    workflowRecorderWindow = null;
+  });
+
+  await prepareRendererSession(workflowRecorderWindow);
+  await workflowRecorderWindow.loadURL(buildWorkflowRecorderCaptureDataUrl());
+  workflowRecorderWindow.show();
+  workflowRecorderWindow.focus();
+  debugLog("shortcut:workflow-recorder window-open");
+}
+
 async function prepareRendererSession(window: BrowserWindow): Promise<void> {
   const session = window.webContents.session;
   if (!cacheHeadersInstalled) {
@@ -300,6 +428,7 @@ function buildDesktopConfig(): DesktopConfig {
   };
 }
 
+// fallow-ignore-next-line complexity
 function loadAppBootstrap(config: DesktopConfig): AppBootstrap {
   const appConfig = readAppConfig(config.appConfigPath);
   const validation = validateAppConfig(appConfig);
@@ -308,7 +437,13 @@ function loadAppBootstrap(config: DesktopConfig): AppBootstrap {
     startupState === "READY" && appConfig ? appConfig.targetRepoPath : config.projectRoot;
 
   config.targetVault = effectiveTargetVault;
-  if (startupState === "READY") {
+  if (startupState === "READY" && appConfig && validation.workspaceMetadata) {
+    saveDesktopSyncConfig(
+      effectiveTargetVault,
+      appConfig.sourceFolders,
+      validation.workspaceMetadata,
+      appConfig.accountUserId,
+    );
     ensureAuditDirectories(effectiveTargetVault);
   }
 
@@ -344,7 +479,20 @@ function readAppConfig(appConfigPath: string): AppConfig | null {
 function normalizeAppConfig(appConfig: AppConfig): AppConfig {
   return {
     ...appConfig,
+    accountIdentifier: normalizeOwnerUserId(appConfig.accountIdentifier ?? ""),
+    accountUserId: normalizeOwnerUserId(appConfig.accountUserId ?? ""),
+    accountServiceUrl: String(appConfig.accountServiceUrl ?? "").trim().replace(/\/+$/, ""),
+    accountSession: normalizeAccountSession(appConfig.accountSession),
     keyboardShortcuts: normalizeShortcuts(appConfig.keyboardShortcuts),
+  };
+}
+
+// fallow-ignore-next-line complexity
+function normalizeAccountSession(sessionConfig: AccountSessionConfig | undefined): AccountSessionConfig {
+  return {
+    accountId: normalizeOwnerUserId(sessionConfig?.accountId ?? ""),
+    token: String(sessionConfig?.token ?? "").trim(),
+    expiresAt: String(sessionConfig?.expiresAt ?? "").trim(),
   };
 }
 
@@ -355,9 +503,19 @@ function normalizeShortcuts(shortcuts: Partial<AppShortcuts> | undefined): AppSh
   };
 }
 
-function validateAppConfig(appConfig: AppConfig | null): { valid: boolean; reason?: string } {
+// fallow-ignore-next-line complexity
+function validateAppConfig(appConfig: AppConfig | null): AppConfigValidation {
   if (!appConfig) {
     return { valid: false, reason: "missing-config" };
+  }
+  if (!appConfig.accountIdentifier) {
+    return { valid: false, reason: "missing-account-identifier" };
+  }
+  if (!appConfig.accountUserId || !appConfig.accountSession.token) {
+    return { valid: false, reason: "missing-account-session" };
+  }
+  if (appConfig.accountSession.expiresAt && appConfig.accountSession.expiresAt <= new Date().toISOString()) {
+    return { valid: false, reason: "expired-account-session" };
   }
   if (!appConfig.targetRepoPath || !fs.existsSync(appConfig.targetRepoPath)) {
     return { valid: false, reason: "missing-target-repo" };
@@ -365,7 +523,11 @@ function validateAppConfig(appConfig: AppConfig | null): { valid: boolean; reaso
   if (!Array.isArray(appConfig.sourceFolders)) {
     return { valid: false, reason: "invalid-source-folders" };
   }
-  return { valid: true };
+  const binding = ensureWorkspaceBinding(appConfig.targetRepoPath, appConfig.accountUserId);
+  if (!binding.ok) {
+    return { valid: false, reason: binding.error };
+  }
+  return { valid: true, workspaceMetadata: binding.metadata };
 }
 
 function writeAppConfig(appConfigPath: string, appConfig: AppConfig): void {
@@ -381,6 +543,7 @@ function resolveProjectRoot(): string {
   return path.resolve(__dirname, "..", "..");
 }
 
+// fallow-ignore-next-line complexity
 function readRuntimeProjectRoot(): string | null {
   const runtimeConfigPath = resolveRuntimeConfigPath();
   if (!runtimeConfigPath || !fs.existsSync(runtimeConfigPath)) {
@@ -426,18 +589,20 @@ function ensureAuditDirectories(targetVault: string): void {
   fs.mkdirSync(path.join(targetVault, "audit", "resolved"), { recursive: true });
 }
 
+// fallow-ignore-next-line complexity
 async function startWebServer(targetVault: string, forceRestart: boolean): Promise<void> {
   debugLog(`startWebServer:start forceRestart=${forceRestart} targetVault=${targetVault}`);
   const liveRestart = forceRestart && Boolean(mainWindow);
+  const restartPort = activeWebPort;
   if (forceRestart) {
     await stopWebServer();
   }
 
   if (liveRestart) {
-    const defaultPortReleased = await waitForPortToClose(DEFAULT_WEB_PORT);
-    if (!defaultPortReleased) {
-      debugLog(`startWebServer:live-restart-port-unavailable port=${DEFAULT_WEB_PORT}`);
-      throw new Error(`Local LLM Wiki web server port ${DEFAULT_WEB_PORT} is unavailable during live restart.`);
+    const restartPortReleased = await waitForPortToClose(restartPort);
+    if (!restartPortReleased) {
+      debugLog(`startWebServer:live-restart-port-unavailable port=${restartPort}`);
+      throw new Error(`Local LLM Wiki web server port ${restartPort} is unavailable during live restart.`);
     }
   }
 
@@ -448,7 +613,7 @@ async function startWebServer(targetVault: string, forceRestart: boolean): Promi
   }
 
   if (await isPortOpen(DEFAULT_WEB_PORT)) {
-    if (liveRestart) {
+    if (liveRestart && restartPort === DEFAULT_WEB_PORT) {
       debugLog(`startWebServer:live-restart-port-conflict port=${DEFAULT_WEB_PORT}`);
       throw new Error(`Local LLM Wiki web server port ${DEFAULT_WEB_PORT} is unavailable during live restart.`);
     }
@@ -481,6 +646,7 @@ async function startWebServer(targetVault: string, forceRestart: boolean): Promi
       ],
       {
         cwd: webRoot,
+        env: buildWebServerEnv(readAppConfig(desktopConfig.appConfigPath)),
         windowsHide: true,
         shell: false,
         stdio: "pipe",
@@ -670,25 +836,29 @@ async function stopWebServer(): Promise<void> {
 }
 
 async function chooseTargetVault(): Promise<string | null> {
-  const options: OpenDialogOptions = {
+  const filePaths = await showDesktopOpenDialog({
     title: "\u9009\u62e9\u76ee\u6807\u4ed3\u5e93",
     properties: ["openDirectory"],
-  };
-  const result = mainWindow
-    ? await dialog.showOpenDialog(mainWindow, options)
-    : await dialog.showOpenDialog(options);
-
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-  return result.filePaths[0] ?? null;
+  });
+  return filePaths[0] ?? null;
 }
 
 async function chooseSourceFolders(): Promise<string[]> {
-  const options: OpenDialogOptions = {
+  return showDesktopOpenDialog({
     title: "\u9009\u62e9\u540c\u6b65\u6e90\u6587\u4ef6\u5939",
     properties: ["openDirectory", "multiSelections"],
-  };
+  });
+}
+
+async function choosePersonalTimelineSourceEntry(): Promise<string | null> {
+  const filePaths = await showDesktopOpenDialog({
+    title: "\u9009\u62e9\u4e2a\u4eba\u65f6\u95f4\u7ebf\u8f93\u5165\u6765\u6e90",
+    properties: ["openFile", "openDirectory"],
+  });
+  return filePaths[0] ?? null;
+}
+
+async function showDesktopOpenDialog(options: OpenDialogOptions): Promise<string[]> {
   const result = mainWindow
     ? await dialog.showOpenDialog(mainWindow, options)
     : await dialog.showOpenDialog(options);
@@ -767,6 +937,7 @@ async function importDouyinCookie(): Promise<ImportedCookieResult> {
   };
 }
 
+// fallow-ignore-next-line complexity
 async function fetchXiaohongshuFavorites(): Promise<XiaohongshuFavoritesResult> {
   let workerWindow: BrowserWindow | null = null;
   try {
@@ -1000,6 +1171,7 @@ async function openDouyinLogin(): Promise<DesktopActionResult> {
   return { ok: true, message: "已打开抖音登录窗口。登录完成后回到导入弹窗读取 Cookie。" };
 }
 
+// fallow-ignore-next-line complexity
 async function collectDouyinDesktopCapture(url: string, rawText: string): Promise<DouyinDesktopCapture & { canonicalUrl: string }> {
   let workerWindow: BrowserWindow | null = null;
   try {
@@ -1142,6 +1314,7 @@ async function collectDouyinDesktopCapture(url: string, rawText: string): Promis
   }
 }
 
+// fallow-ignore-next-line complexity
 async function downloadDouyinWithYtDlp(canonicalUrl: string): Promise<string | null> {
   const ytDlpPath = resolveYtDlpBinary();
   if (!ytDlpPath) {
@@ -1209,6 +1382,7 @@ function resolveYtDlpBinary(): string | null {
   return process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp";
 }
 
+// fallow-ignore-next-line complexity
 async function exportDouyinCookiesNetscape(filePath: string): Promise<number> {
   const cookies = await douyinSession().cookies.get({});
   const lines = ["# Netscape HTTP Cookie File", ""];
@@ -1229,6 +1403,7 @@ async function exportDouyinCookiesNetscape(filePath: string): Promise<number> {
   return count;
 }
 
+// fallow-ignore-next-line complexity
 function pickDouyinDesktopVideoUrl(urls: readonly string[]): string | null {
   const candidates = [...new Set(urls.map((value) => normalizeAbsoluteUrl(value)).filter(Boolean))];
   let bestUrl = "";
@@ -1255,6 +1430,7 @@ function pickDouyinDesktopVideoUrl(urls: readonly string[]): string | null {
   return bestScore > 0 ? bestUrl : null;
 }
 
+// fallow-ignore-next-line complexity
 function pickDouyinDesktopAudioUrl(urls: readonly string[]): string | null {
   const candidates = [...new Set(urls.map((value) => normalizeAbsoluteUrl(value)).filter(Boolean))];
   let bestUrl = "";
@@ -1272,6 +1448,7 @@ function pickDouyinDesktopAudioUrl(urls: readonly string[]): string | null {
   return bestScore > 0 ? bestUrl : null;
 }
 
+// fallow-ignore-next-line complexity
 async function downloadDouyinDesktopVideo(sourceUrl: string, audioUrl: string | null): Promise<string> {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "douyin-desktop-"));
   const targetPath = path.join(tempRoot, /\.(m3u8)(?:$|\?)/i.test(sourceUrl) ? "capture.mp4" : `capture.${inferDouyinVideoExtension(sourceUrl)}`);
@@ -1403,18 +1580,6 @@ function normalizeAbsoluteUrl(value: string | undefined): string {
   }
 }
 
-function isClipSubmissionBody(value: unknown): value is ClipSubmissionBody {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const record = value as Record<string, unknown>;
-  return typeof record.url === "string" && record.url.trim().length > 0 && typeof record.now === "string";
-}
-
-function isDouyinUrl(value: string): boolean {
-  return /douyin\.com|iesdouyin\.com/i.test(value);
-}
-
 function readSyncCompileConfig(projectRoot: string): SyncCompileConfig {
   const configPath = path.join(projectRoot, "sync-compile-config.json");
   if (!fs.existsSync(configPath)) {
@@ -1427,6 +1592,211 @@ function readSyncCompileConfig(projectRoot: string): SyncCompileConfig {
   } catch {
     return {};
   }
+}
+
+function readDotEnvFile(projectRoot: string): Record<string, string> {
+  const envPath = path.join(projectRoot, ".env");
+  if (!fs.existsSync(envPath)) {
+    return {};
+  }
+  const out: Record<string, string> = {};
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([^#][^=]+?)\s*=\s*(.*?)\s*$/);
+    if (match) out[match[1].trim()] = match[2].trim().replace(/^["']|["']$/g, "");
+  }
+  return out;
+}
+
+// fallow-ignore-next-line complexity
+async function configureDesktopNetwork(projectRoot: string): Promise<void> {
+  const envFile = readDotEnvFile(projectRoot);
+  for (const key of ["GLOBAL_AGENT_HTTP_PROXY", "GLOBAL_AGENT_HTTPS_PROXY", "GLOBAL_AGENT_NO_PROXY"]) {
+    if (!process.env[key] && envFile[key]) {
+      process.env[key] = envFile[key];
+    }
+  }
+  if (!process.env.GLOBAL_AGENT_HTTP_PROXY && !process.env.GLOBAL_AGENT_HTTPS_PROXY) {
+    return;
+  }
+  try {
+    await import("global-agent/bootstrap");
+    debugLog("network:global-agent enabled");
+  } catch (error) {
+    debugLog(`network:global-agent failed ${error instanceof Error ? error.message : String(error)}`);
+  }
+  try {
+    const proxyUrl = process.env.GLOBAL_AGENT_HTTPS_PROXY ?? process.env.GLOBAL_AGENT_HTTP_PROXY;
+    if (!proxyUrl) {
+      return;
+    }
+    const { ProxyAgent, setGlobalDispatcher } = await import("undici");
+    setGlobalDispatcher(new ProxyAgent(proxyUrl));
+    debugLog("network:undici proxy enabled");
+  } catch (error) {
+    debugLog(`network:undici proxy failed ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function resolveAccountServiceUrl(): string {
+  const envFile = readDotEnvFile(desktopConfig.projectRoot);
+  return String(process.env.CLOUDFLARE_WORKER_URL ?? envFile.CLOUDFLARE_WORKER_URL ?? "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
+function inferIdentityType(identifier: string): "email" | "phone" {
+  return identifier.includes("@") ? "email" : "phone";
+}
+
+// fallow-ignore-next-line complexity
+async function authenticateAccount(payload: InitializePayload): Promise<AccountSessionConfig & { serviceUrl: string }> {
+  const serviceUrl = resolveAccountServiceUrl();
+  const password = String(payload.accountPassword ?? "");
+  if (!serviceUrl) throw new Error("Account service URL is not configured.");
+  if (password.length < 8) throw new Error("Account password must be at least 8 characters.");
+  const endpoint = `${serviceUrl}/auth/${payload.authMode === "register" ? "register" : "login"}`;
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        identityType: inferIdentityType(payload.accountIdentifier),
+        identifier: payload.accountIdentifier,
+        password,
+      }),
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`账号服务连接失败：${endpoint}。${reason}`);
+  }
+  const result = await response.json() as {
+    ok?: boolean;
+    error?: string;
+    user?: { id?: string };
+    session?: { token?: string; expiresAt?: string };
+  };
+  if (!response.ok || result.ok === false || !result.user?.id || !result.session?.token) {
+    throw new Error(result.error ?? "Account login failed.");
+  }
+  return {
+    accountId: normalizeOwnerUserId(result.user.id),
+    token: result.session.token,
+    expiresAt: String(result.session.expiresAt ?? ""),
+    serviceUrl,
+  };
+}
+
+// fallow-ignore-next-line complexity
+async function startWeChatMiniProgramLogin(): Promise<{
+  loginId: string;
+  pollToken: string;
+  qrPayload: string;
+  expiresAt: string;
+}> {
+  const serviceUrl = resolveAccountServiceUrl();
+  if (!serviceUrl) throw new Error("Account service URL is not configured.");
+  const response = await fetch(`${serviceUrl}/auth/wechat/mini-login/start`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  const result = await response.json() as {
+    ok?: boolean;
+    error?: string;
+    loginId?: string;
+    pollToken?: string;
+    qrPayload?: string;
+    expiresAt?: string;
+  };
+  if (wechatResponseFailed(response, result.ok) || !result.loginId || !result.pollToken || !result.qrPayload) {
+    throw new Error(result.error ?? "Failed to start WeChat mini-program login.");
+  }
+  return {
+    loginId: result.loginId,
+    pollToken: result.pollToken,
+    qrPayload: result.qrPayload,
+    expiresAt: String(result.expiresAt ?? ""),
+  };
+}
+
+// fallow-ignore-next-line complexity
+async function pollWeChatMiniProgramLogin(payload: WeChatMiniLoginPollPayload): Promise<{
+  status: "pending" | "confirmed" | "expired";
+  accountSession?: AccountSessionConfig;
+  error?: string;
+}> {
+  const serviceUrl = resolveAccountServiceUrl();
+  if (!serviceUrl) throw new Error("Account service URL is not configured.");
+  const response = await fetch(`${serviceUrl}/auth/wechat/mini-login/poll`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json() as {
+    ok?: boolean;
+    status?: "pending" | "confirmed" | "expired";
+    error?: string;
+    user?: { id?: string };
+    session?: { token?: string; expiresAt?: string };
+  };
+  if (result.status === "pending") return { status: "pending" };
+  if (result.status === "expired") return { status: "expired", error: result.error };
+  if (wechatResponseFailed(response, result.ok) || !result.user?.id || !result.session?.token) {
+    throw new Error(result.error ?? "WeChat mini-program login failed.");
+  }
+  return {
+    status: "confirmed",
+    accountSession: buildWeChatSession(serviceUrl, result.user.id, result.session.token, result.session.expiresAt),
+  };
+}
+
+function wechatResponseFailed(response: Response, ok: boolean | undefined): boolean {
+  return !response.ok || ok === false;
+}
+
+function buildWeChatSession(
+  serviceUrl: string,
+  accountId: string,
+  token: string,
+  expiresAt: string | undefined,
+): AccountSessionConfig & { serviceUrl: string } {
+  return {
+    accountId: normalizeOwnerUserId(accountId),
+    token,
+    expiresAt: String(expiresAt ?? ""),
+    serviceUrl,
+  };
+}
+
+async function saveRemoteSyncLocation(config: AppConfig): Promise<void> {
+  const response = await fetch(`${config.accountServiceUrl}/account/sync-location/save`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: `Bearer ${config.accountSession.token}`,
+    },
+    body: JSON.stringify({
+      workspaceId: config.workspaceId,
+      displayName: path.basename(config.targetRepoPath),
+      syncBackend: {
+        type: "local_directory",
+        config: { localPath: config.targetRepoPath },
+      },
+    }),
+  });
+  const result = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "Failed to save account sync location.");
+}
+
+// fallow-ignore-next-line complexity
+function buildWebServerEnv(appConfig: AppConfig | null): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    ...(appConfig?.accountServiceUrl ? { CLOUDFLARE_WORKER_URL: appConfig.accountServiceUrl } : {}),
+    ...(appConfig?.accountSession.token ? { CLOUDFLARE_ACCOUNT_SESSION_TOKEN: appConfig.accountSession.token } : {}),
+    ...(appConfig?.workspaceId ? { CLOUDFLARE_WORKSPACE_ID: appConfig.workspaceId } : {}),
+  };
 }
 
 function resolveDesktopServerRoots(): DesktopServerRoots {
@@ -1452,12 +1822,59 @@ function writeSyncCompileConfig(projectRoot: string, config: SyncCompileConfig):
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
-function saveDraftAppConfig(payload: InitializePayload): AppConfig {
+function bindWorkspaceOrThrow(
+  targetRepoPath: string,
+  accountIdentifier: string,
+): WorkspaceMetadata {
+  const binding = ensureWorkspaceBinding(targetRepoPath, accountIdentifier);
+  if (!binding.ok) {
+    throw new Error(`${binding.error} (${WORKSPACE_METADATA_RELATIVE_PATH})`);
+  }
+  return binding.metadata;
+}
+
+function saveDesktopSyncConfig(
+  targetVault: string,
+  sourceFolders: string[] | undefined,
+  metadata: WorkspaceMetadata,
+  accountUserId: string,
+): void {
+  const existingConfig = readSyncCompileConfig(desktopConfig.projectRoot);
+  const nextConfig = normalizeDesktopSyncCompileConfig(
+    desktopConfig.projectRoot,
+    existingConfig,
+    targetVault,
+    {
+      ownerUserId: accountUserId,
+      workspaceId: metadata.workspaceId,
+    },
+  );
+  writeSyncCompileConfig(desktopConfig.projectRoot, {
+    ...nextConfig,
+    compiler_root: existingConfig.compiler_root ?? desktopConfig.projectRoot,
+    source_folders: sourceFolders ?? existingConfig.source_folders,
+    cloudflare_workspace_id: metadata.workspaceId,
+  });
+}
+
+function saveAuthenticatedAppConfig(payload: InitializePayload, sessionConfig: AccountSessionConfig & { serviceUrl: string }): AppConfig {
   const currentConfig = readAppConfig(desktopConfig.appConfigPath);
+  const accountIdentifier = normalizeOwnerUserId(payload.accountIdentifier);
+  const targetRepoPath = payload.targetRepoPath.trim();
+  const workspaceMetadata = bindWorkspaceOrThrow(targetRepoPath, sessionConfig.accountId);
   const draftConfig: AppConfig = {
-    targetRepoPath: payload.targetRepoPath.trim(),
+    accountIdentifier,
+    accountUserId: sessionConfig.accountId,
+    accountServiceUrl: sessionConfig.serviceUrl,
+    accountSession: {
+      accountId: sessionConfig.accountId,
+      token: sessionConfig.token,
+      expiresAt: sessionConfig.expiresAt,
+    },
+    targetRepoPath,
     sourceFolders: payload.sourceFolders.map((folder) => folder.trim()).filter(Boolean),
     initialized: false,
+    workspaceId: workspaceMetadata.workspaceId,
     keyboardShortcuts: normalizeShortcuts(currentConfig?.keyboardShortcuts),
   };
   writeAppConfig(desktopConfig.appConfigPath, draftConfig);
@@ -1465,22 +1882,33 @@ function saveDraftAppConfig(payload: InitializePayload): AppConfig {
   return draftConfig;
 }
 
+function saveDraftAppConfig(payload: InitializePayload): AppConfig {
+  const currentConfig = readAppConfig(desktopConfig.appConfigPath);
+  if (!currentConfig?.accountSession.token || !currentConfig.accountUserId) {
+    throw new Error("Please log in before saving this workspace.");
+  }
+  return saveAuthenticatedAppConfig(payload, {
+    ...currentConfig.accountSession,
+    accountId: currentConfig.accountUserId,
+    serviceUrl: currentConfig.accountServiceUrl,
+  });
+}
+
+// fallow-ignore-next-line complexity
 function saveDesktopConfig(targetVault: string): DesktopConfig {
   const normalizedTargetVault = targetVault.trim();
   if (!normalizedTargetVault) {
     throw new Error("Target vault cannot be empty.");
   }
-
-  const existingConfig = readSyncCompileConfig(desktopConfig.projectRoot);
-  const nextConfig = normalizeDesktopSyncCompileConfig(
-    desktopConfig.projectRoot,
-    existingConfig,
+  const currentConfig = readAppConfig(desktopConfig.appConfigPath);
+  const accountUserId = currentConfig?.accountUserId ?? "";
+  const workspaceMetadata = bindWorkspaceOrThrow(normalizedTargetVault, accountUserId);
+  saveDesktopSyncConfig(
     normalizedTargetVault,
+    currentConfig?.sourceFolders,
+    workspaceMetadata,
+    accountUserId,
   );
-  writeSyncCompileConfig(desktopConfig.projectRoot, {
-    ...nextConfig,
-    compiler_root: existingConfig.compiler_root ?? desktopConfig.projectRoot,
-  });
 
   desktopConfig.targetVault = normalizedTargetVault;
   ensureAuditDirectories(desktopConfig.targetVault);
@@ -1581,9 +2009,13 @@ async function runInitializationInBackground(
 }
 
 async function runInitialization(payload: InitializePayload): Promise<AppBootstrap> {
+  const accountIdentifier = normalizeOwnerUserId(payload.accountIdentifier);
   const targetRepoPath = payload.targetRepoPath.trim();
   const sourceFolders = payload.sourceFolders.map((folder) => folder.trim()).filter(Boolean);
 
+  if (!accountIdentifier) {
+    throw new Error("Account identifier is required.");
+  }
   if (!targetRepoPath) {
     throw new Error("Target repository path is required.");
   }
@@ -1593,20 +2025,13 @@ async function runInitialization(payload: InitializePayload): Promise<AppBootstr
 
   activeStartupState = "INITIALIZING";
 
-  const draftConfig = saveDraftAppConfig({ targetRepoPath, sourceFolders });
-  saveDesktopConfig(targetRepoPath);
-
-  const existingSyncConfig = readSyncCompileConfig(desktopConfig.projectRoot);
-  const nextSyncConfig = normalizeDesktopSyncCompileConfig(
-    desktopConfig.projectRoot,
-    existingSyncConfig,
-    targetRepoPath,
+  const accountSession = await authenticateAccount({ ...payload, accountIdentifier });
+  const draftConfig = saveAuthenticatedAppConfig(
+    { ...payload, accountIdentifier, targetRepoPath, sourceFolders },
+    accountSession,
   );
-  writeSyncCompileConfig(desktopConfig.projectRoot, {
-    ...nextSyncConfig,
-    compiler_root: existingSyncConfig.compiler_root ?? desktopConfig.projectRoot,
-    source_folders: sourceFolders,
-  });
+  await saveRemoteSyncLocation(draftConfig);
+  saveDesktopConfig(targetRepoPath);
 
   ensureAuditDirectories(targetRepoPath);
   desktopConfig.targetVault = targetRepoPath;
@@ -1619,15 +2044,52 @@ async function runInitialization(payload: InitializePayload): Promise<AppBootstr
   return getAppBootstrap();
 }
 
+async function runWeChatSessionInitialization(payload: WeChatSessionInitializePayload): Promise<AppBootstrap> {
+  const targetRepoPath = payload.targetRepoPath.trim();
+  const sourceFolders = payload.sourceFolders.map((folder) => folder.trim()).filter(Boolean);
+  if (!targetRepoPath) throw new Error("Target repository path is required.");
+  if (sourceFolders.length === 0) throw new Error("At least one source folder is required.");
+
+  activeStartupState = "INITIALIZING";
+  const accountSession = {
+    ...payload.accountSession,
+    serviceUrl: resolveAccountServiceUrl(),
+  };
+  if (!accountSession.serviceUrl) throw new Error("Account service URL is not configured.");
+  const draftConfig = saveAuthenticatedAppConfig({
+    accountIdentifier: accountSession.accountId,
+    authMode: "wechat",
+    targetRepoPath,
+    sourceFolders,
+  }, accountSession);
+  await saveRemoteSyncLocation(draftConfig);
+  saveDesktopConfig(targetRepoPath);
+
+  ensureAuditDirectories(targetRepoPath);
+  desktopConfig.targetVault = targetRepoPath;
+  await startWebServer(targetRepoPath, true);
+  activeStartupState = "READY";
+  appBootstrap = buildReadyBootstrap(draftConfig);
+  void runInitializationInBackground(targetRepoPath, draftConfig);
+  return getAppBootstrap();
+}
+
 async function runSyncCompileProcess(): Promise<void> {
   const scriptPath = path.join(desktopConfig.projectRoot, "scripts", "sync-compile.mjs");
+  const accountConfig = readAppConfig(desktopConfig.appConfigPath);
 
+  // fallow-ignore-next-line complexity
   await new Promise<void>((resolve, reject) => {
     const child = spawn(resolveNodeCommand(), [scriptPath], {
       cwd: desktopConfig.projectRoot,
       windowsHide: true,
       shell: false,
-      env: process.env,
+      env: {
+        ...process.env,
+        CLOUDFLARE_WORKER_URL: accountConfig?.accountServiceUrl ?? process.env.CLOUDFLARE_WORKER_URL,
+        CLOUDFLARE_ACCOUNT_SESSION_TOKEN: accountConfig?.accountSession.token ?? process.env.CLOUDFLARE_ACCOUNT_SESSION_TOKEN,
+        CLOUDFLARE_WORKSPACE_ID: accountConfig?.workspaceId ?? process.env.CLOUDFLARE_WORKSPACE_ID,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
 
@@ -1666,31 +2128,40 @@ function getCurrentShortcuts(): AppShortcuts {
 function registerConfiguredShortcuts(): ShortcutStatus {
   globalShortcut.unregisterAll();
   const shortcuts = getCurrentShortcuts();
-  const accelerator = shortcuts.flashDiaryCapture.trim();
-  if (!accelerator) {
-    shortcutStatus = {
-      shortcuts,
-      registered: false,
-      error: "Shortcut is empty.",
-    };
-    debugLog("shortcut:flash-diary empty");
-    return shortcutStatus;
-  }
-
-  const registered = globalShortcut.register(accelerator, () => {
-    void showFlashDiaryCaptureWindow();
-  });
+  const errors = [
+    registerGlobalShortcut(
+      "flash-diary",
+      shortcuts.flashDiaryCapture,
+      () => void showFlashDiaryCaptureWindow(),
+    ),
+    registerGlobalShortcut(
+      "workflow-recorder",
+      shortcuts.workflowRecorder,
+      () => void showWorkflowRecorderCaptureWindow(),
+    ),
+  ].filter((error): error is string => Boolean(error));
   shortcutStatus = {
     shortcuts,
-    registered,
-    error: registered ? undefined : `Shortcut registration failed: ${accelerator}`,
+    registered: errors.length === 0,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
   };
-  debugLog(`shortcut:flash-diary accelerator=${accelerator} registered=${registered}`);
   return shortcutStatus;
 }
 
+function registerGlobalShortcut(label: string, value: string, handler: () => void): string | null {
+  const accelerator = value.trim();
+  if (!accelerator) {
+    debugLog(`shortcut:${label} empty`);
+    return `${label}: Shortcut is empty.`;
+  }
+  const registered = globalShortcut.register(accelerator, handler);
+  debugLog(`shortcut:${label} accelerator=${accelerator} registered=${registered}`);
+  return registered ? null : `${label}: Shortcut registration failed: ${accelerator}`;
+}
+
+// fallow-ignore-next-line complexity
 function saveShortcut(payload: ShortcutSavePayload): ShortcutStatus {
-  if (payload.id !== "flashDiaryCapture") {
+  if (!(payload.id in DEFAULT_SHORTCUTS)) {
     throw new Error("Unknown shortcut id.");
   }
   const accelerator = payload.accelerator.trim();
@@ -1699,9 +2170,14 @@ function saveShortcut(payload: ShortcutSavePayload): ShortcutStatus {
   }
 
   const existing = readAppConfig(desktopConfig.appConfigPath) ?? {
+    accountIdentifier: appBootstrap?.appConfig?.accountIdentifier ?? "",
+    accountUserId: appBootstrap?.appConfig?.accountUserId ?? "",
+    accountServiceUrl: appBootstrap?.appConfig?.accountServiceUrl ?? "",
+    accountSession: appBootstrap?.appConfig?.accountSession ?? { accountId: "", token: "", expiresAt: "" },
     targetRepoPath: desktopConfig.targetVault,
     sourceFolders: [],
     initialized: activeStartupState === "READY",
+    workspaceId: appBootstrap?.appConfig?.workspaceId,
     keyboardShortcuts: DEFAULT_SHORTCUTS,
   };
   const nextConfig = normalizeAppConfig({
@@ -1719,6 +2195,124 @@ function saveShortcut(payload: ShortcutSavePayload): ShortcutStatus {
   return registerConfiguredShortcuts();
 }
 
+async function openBrowserUrl(url: string): Promise<BrowserOpenResult> {
+  return isBrowserInternalUrl(url) ? openBrowserInternalUrl(url) : openDefaultExternalUrl(url);
+}
+
+async function openDefaultExternalUrl(url: string): Promise<BrowserOpenResult> {
+  await shell.openExternal(url);
+  return { ok: true, browser: "default" };
+}
+
+async function openBrowserInternalUrl(url: string): Promise<BrowserOpenResult> {
+  for (const candidate of await browserLaunchCandidates()) {
+    if (await tryLaunchBrowser(candidate, url)) return { ok: true, browser: candidate.name };
+  }
+  return { ok: false, error: "未找到可打开浏览器内部链接的系统默认浏览器，也未找到 Chrome 或 Edge。" };
+}
+
+function isBrowserInternalUrl(url: string): boolean {
+  return /^(chrome-extension|chrome|edge):\/\//i.test(url.trim());
+}
+
+async function browserLaunchCandidates(): Promise<BrowserLaunchCandidate[]> {
+  if (process.platform === "win32") return await windowsBrowserLaunchCandidates();
+  if (process.platform === "darwin") {
+    return [
+      { name: "Chrome", command: "open", args: ["-a", "Google Chrome"] },
+      { name: "Edge", command: "open", args: ["-a", "Microsoft Edge"] },
+    ];
+  }
+  return [
+    { name: "Chrome", command: "google-chrome", args: [] },
+    { name: "Chromium", command: "chromium", args: [] },
+    { name: "Edge", command: "microsoft-edge", args: [] },
+  ];
+}
+
+// fallow-ignore-next-line complexity
+async function windowsBrowserLaunchCandidates(): Promise<BrowserLaunchCandidate[]> {
+  const local = process.env.LOCALAPPDATA ?? "";
+  const programFiles = process.env.PROGRAMFILES ?? "";
+  const programFilesX86 = process.env["PROGRAMFILES(X86)"] ?? "";
+  const defaultBrowser = await windowsDefaultBrowserLaunchCandidate();
+  return [
+    ...(defaultBrowser ? [defaultBrowser] : []),
+    { name: "Chrome", command: path.join(local, "Google", "Chrome", "Application", "chrome.exe"), args: [] },
+    { name: "Chrome", command: path.join(programFiles, "Google", "Chrome", "Application", "chrome.exe"), args: [] },
+    { name: "Chrome", command: path.join(programFilesX86, "Google", "Chrome", "Application", "chrome.exe"), args: [] },
+    { name: "Edge", command: path.join(programFiles, "Microsoft", "Edge", "Application", "msedge.exe"), args: [] },
+    { name: "Edge", command: path.join(programFilesX86, "Microsoft", "Edge", "Application", "msedge.exe"), args: [] },
+    { name: "Chrome", command: "chrome.exe", args: [] },
+    { name: "Edge", command: "msedge.exe", args: [] },
+  ];
+}
+
+// fallow-ignore-next-line complexity
+async function windowsDefaultBrowserLaunchCandidate(): Promise<BrowserLaunchCandidate | null> {
+  const progId = await windowsDefaultBrowserProgId();
+  if (!progId) return null;
+  const commandText = readRegistryValue(await queryRegistryValue(`HKCU\\Software\\Classes\\${progId}\\shell\\open\\command`))
+    ?? readRegistryValue(await queryRegistryValue(`HKCR\\${progId}\\shell\\open\\command`));
+  const command = commandText ? parseWindowsBrowserCommand(commandText) : null;
+  return command ? { name: "系统默认浏览器", ...command } : null;
+}
+
+async function windowsDefaultBrowserProgId(): Promise<string | null> {
+  for (const protocol of ["http", "https"]) {
+    const progId = readRegistryValue(await queryRegistryValue(
+      `HKCU\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\${protocol}\\UserChoice`,
+      "ProgId",
+    ));
+    if (progId) return progId;
+  }
+  return null;
+}
+
+function queryRegistryValue(key: string, value?: string): Promise<string> {
+  const args = ["query", key, value ? "/v" : "/ve", value ?? ""].filter(Boolean);
+  return new Promise((resolve) => {
+    execFile("reg", args, { windowsHide: true }, (error, stdout) => {
+      resolve(error ? "" : stdout);
+    });
+  });
+}
+
+function readRegistryValue(output: string): string | null {
+  const line = output.split(/\r?\n/).find((item) => /\sREG_\w+\s/i.test(item));
+  return line?.replace(/^.*?\sREG_\w+\s+/i, "").trim() || null;
+}
+
+// fallow-ignore-next-line complexity
+function parseWindowsBrowserCommand(value: string): Pick<BrowserLaunchCandidate, "command" | "args"> | null {
+  const quoted = value.trim().match(/^"([^"]+)"\s*(.*)$/);
+  if (quoted?.[1]) return { command: quoted[1], args: parseWindowsBrowserArgs(quoted[2] ?? "") };
+  const unquoted = value.trim().match(/^([^\s]+\.exe)\b\s*(.*)$/i);
+  return unquoted?.[1] ? { command: unquoted[1], args: parseWindowsBrowserArgs(unquoted[2] ?? "") } : null;
+}
+
+function parseWindowsBrowserArgs(value: string): string[] {
+  return value.match(/"[^"]*"|[^\s]+/g)
+    ?.map((arg) => arg.replace(/^"|"$/g, ""))
+    .filter((arg) => !/^%[1lL]$/.test(arg)) ?? [];
+}
+
+function tryLaunchBrowser(candidate: BrowserLaunchCandidate, url: string): Promise<boolean> {
+  if (path.isAbsolute(candidate.command) && !fs.existsSync(candidate.command)) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const child = spawn(candidate.command, [...candidate.args, url], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.once("error", () => resolve(false));
+    child.once("spawn", () => {
+      child.unref();
+      resolve(true);
+    });
+  });
+}
+
 ipcMain.handle("desktop:get-config", () => desktopConfig);
 ipcMain.handle("desktop:get-app-bootstrap", () => getAppBootstrap());
 ipcMain.handle("desktop:get-shortcuts", () => shortcutStatus);
@@ -1727,6 +2321,7 @@ ipcMain.handle("desktop:save-shortcut", (_event, payload: ShortcutSavePayload) =
 );
 ipcMain.handle("desktop:choose-target-vault", () => chooseTargetVault());
 ipcMain.handle("desktop:choose-source-folders", () => chooseSourceFolders());
+ipcMain.handle("desktop:choose-personal-timeline-source-entry", () => choosePersonalTimelineSourceEntry());
 ipcMain.handle("desktop:import-xiaohongshu-cookie", () => importXiaohongshuCookie());
 ipcMain.handle("desktop:open-xiaohongshu-login", () => openXiaohongshuLogin());
 ipcMain.handle("desktop:import-douyin-cookie", () => importDouyinCookie());
@@ -1742,7 +2337,15 @@ ipcMain.handle(
 ipcMain.handle("desktop:initialize-app", (_event, payload: InitializePayload) =>
   runInitialization(payload),
 );
+ipcMain.handle("desktop:start-wechat-mini-login", () => startWeChatMiniProgramLogin());
+ipcMain.handle("desktop:poll-wechat-mini-login", (_event, payload: WeChatMiniLoginPollPayload) =>
+  pollWeChatMiniProgramLogin(payload),
+);
+ipcMain.handle("desktop:initialize-app-wechat-session", (_event, payload: WeChatSessionInitializePayload) =>
+  runWeChatSessionInitialization(payload),
+);
 ipcMain.handle("desktop:open-external", (_event, url: string) => shell.openExternal(url));
+ipcMain.handle("desktop:open-browser-url", (_event, url: string) => openBrowserUrl(url));
 ipcMain.handle("desktop:choose-flash-diary-media", async () => {
   const result = flashDiaryCaptureWindow
     ? await dialog.showOpenDialog(flashDiaryCaptureWindow, {
@@ -1759,6 +2362,22 @@ ipcMain.handle("desktop:choose-flash-diary-media", async () => {
     });
   return result.canceled ? [] : result.filePaths;
 });
+ipcMain.handle("desktop:open-workflow-recorder", () => showWorkflowRecorderCaptureWindow());
+ipcMain.handle("desktop:get-workflow-recorder-tasks", () => fetchWorkflowRecorderTasks());
+// fallow-ignore-next-line complexity
+ipcMain.handle("desktop:choose-workflow-recorder-attachments", async () => {
+  const parentWindow = workflowRecorderWindow && !workflowRecorderWindow.isDestroyed()
+    ? workflowRecorderWindow
+    : mainWindow;
+  const result = parentWindow
+    ? await dialog.showOpenDialog(parentWindow, workflowRecorderAttachmentDialogOptions())
+    : await dialog.showOpenDialog(workflowRecorderAttachmentDialogOptions());
+  return result.canceled ? [] : result.filePaths;
+});
+ipcMain.handle("desktop:submit-workflow-recorder", (_event, payload: WorkflowRecorderPayload) =>
+  submitWorkflowRecorder(payload),
+);
+registerFlashDiaryMediaHandlers();
 ipcMain.handle("desktop:submit-flash-diary-entry", async (_event, payload: FlashDiaryEntryPayload) => {
   const submission = buildFlashDiarySubmission(payload);
   const taskLabel = deriveClipTaskLabel(payload, submission);
@@ -1769,6 +2388,64 @@ ipcMain.handle("desktop:submit-flash-diary-entry", async (_event, payload: Flash
   return { queued: true } as const;
 });
 
+function workflowRecorderAttachmentDialogOptions(): OpenDialogOptions {
+  return {
+    title: "\u9009\u62e9\u6267\u884c\u8bb0\u5f55\u9644\u4ef6",
+    properties: ["openFile", "multiSelections"],
+    filters: [
+      { name: "\u56fe\u7247\u3001\u6587\u4ef6\u4e0e\u89c6\u9891", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "mp4", "mov", "avi", "mkv", "webm", "pdf", "docx", "pptx", "xlsx", "md", "txt"] },
+      { name: "\u6240\u6709\u6587\u4ef6", extensions: ["*"] },
+    ],
+  };
+}
+
+// fallow-ignore-next-line complexity
+async function fetchWorkflowRecorderTasks(): Promise<Array<{ title: string }>> {
+  const response = await fetch(`${serverUrl}api/task-plan/state`);
+  const payload = await response.json() as {
+    success?: boolean;
+    data?: { state?: { pool?: { items?: Array<{ title?: unknown; completedAt?: unknown }> } } };
+  };
+  if (!response.ok || !payload.success) {
+    return [];
+  }
+  return (payload.data?.state?.pool?.items ?? [])
+    .filter((item) => typeof item.title === "string" && !item.completedAt)
+    .slice(0, 3)
+    .map((item) => ({ title: String(item.title) }));
+}
+
+// fallow-ignore-next-line complexity
+async function submitWorkflowRecorder(payload: WorkflowRecorderPayload): Promise<{ status: string; message: string }> {
+  const response = await fetch(`${serverUrl}api/workflow-recorder/record`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(normalizeWorkflowRecorderPayload(payload)),
+  });
+  const result = await response.json() as { success?: boolean; data?: { status?: string; message?: string }; error?: string };
+  if (!response.ok || !result.success) {
+    throw new Error(result.error ?? "\u6267\u884c\u8bb0\u5f55\u63d0\u4ea4\u5931\u8d25");
+  }
+  return {
+    status: result.data?.status ?? "recorded",
+    message: result.data?.message ?? "\u5df2\u8bb0\u5f55\u3002",
+  };
+}
+
+function normalizeWorkflowRecorderPayload(payload: WorkflowRecorderPayload): WorkflowRecorderPayload {
+  return {
+    text: String(payload.text ?? "").trim(),
+    attachments: Array.isArray(payload.attachments) ? payload.attachments.map(String).filter(Boolean) : [],
+    marker: readWorkflowRecorderMarker(payload.marker),
+  };
+}
+
+function readWorkflowRecorderMarker(value: unknown): WorkflowRecorderPayload["marker"] {
+  if (value === "issue" || value === "resolved" || value === "end-node") return value;
+  return "normal";
+}
+
+// fallow-ignore-next-line complexity
 function deriveClipTaskLabel(
   payload: FlashDiaryEntryPayload,
   submission: ReturnType<typeof buildFlashDiarySubmission>,
@@ -1780,6 +2457,7 @@ function deriveClipTaskLabel(
   return firstLine ? (firstLine.length > 60 ? firstLine.slice(0, 60) + "\u2026" : firstLine) : "\u65e0\u6807\u9898";
 }
 
+// fallow-ignore-next-line complexity
 function showClipNotification(title: string, body: string, options?: { openPath?: string; urgent?: boolean }): void {
   if (!Notification.isSupported()) return;
   try {
@@ -1800,6 +2478,7 @@ function showClipNotification(title: string, body: string, options?: { openPath?
   }
 }
 
+// fallow-ignore-next-line complexity
 async function processFlashDiaryEntryInBackground(
   submission: ReturnType<typeof buildFlashDiarySubmission>,
   payload: FlashDiaryEntryPayload,
@@ -1807,36 +2486,11 @@ async function processFlashDiaryEntryInBackground(
 ): Promise<void> {
   const endpoint = submission.endpoint;
   let body: unknown = submission.body;
-  let desktopCapturePath = "";
   try {
-    if (endpoint === "api/clips" && isClipSubmissionBody(body) && isDouyinUrl(body.url)) {
-      const desktopCapture = await collectDouyinDesktopCapture(body.url, payload.text);
-      desktopCapturePath = desktopCapture.localVideoPath;
-      body = {
-        ...body,
-        url: desktopCapture.canonicalUrl,
-        desktopCapture: {
-          localVideoPath: desktopCapture.localVideoPath,
-          title: desktopCapture.title,
-          desc: desktopCapture.desc,
-          author: desktopCapture.author,
-          date: desktopCapture.date,
-          durationSeconds: desktopCapture.durationSeconds,
-          videoSourceUrl: desktopCapture.videoSourceUrl,
-        },
-      };
-    }
-    const response = await fetch(`${serverUrl}${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const result = await response.json() as {
-      success: boolean;
-      error?: string;
-      data?: { path?: string; status?: string; warnings?: string[] };
-    };
-    if (!response.ok || !result.success) {
+    const result = endpoint === "smartclip-mcp"
+      ? await submitSmartClipClipping(readSmartClipSubmissionBody(body))
+      : await submitDesktopSubmissionEndpoint(endpoint, body);
+    if (!result.success) {
       throw new Error(result.error ?? "\u63d0\u4ea4\u5931\u8d25");
     }
     const resolvedPath = typeof result.data?.path === "string" && result.data.path.trim()
@@ -1860,11 +2514,72 @@ async function processFlashDiaryEntryInBackground(
       at: new Date().toISOString(),
       message,
     });
-  } finally {
-    if (desktopCapturePath) {
-      fs.rmSync(path.dirname(desktopCapturePath), { recursive: true, force: true });
-    }
   }
+}
+
+async function submitDesktopSubmissionEndpoint(
+  endpoint: "api/flash-diary/entry" | "api/source-gallery/create",
+  body: unknown,
+): Promise<DesktopSubmissionResult> {
+  const response = await fetch(`${serverUrl}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json() as DesktopSubmissionResult;
+  return response.ok ? result : { ...result, success: false };
+}
+
+async function submitSmartClipClipping(input: SmartClipSubmissionBody): Promise<DesktopSubmissionResult> {
+  const clip = await clipPageWithSmartClip({ url: input.url, mode: "full" });
+  const result = await submitDesktopSubmissionEndpoint("api/source-gallery/create", {
+    type: "clipping",
+    title: clip.title ?? input.url,
+    body: renderSmartClipMarkdown(input.body, clip),
+    url: clip.url || input.url,
+    now: input.now,
+    mediaPaths: input.mediaPaths,
+  });
+  return mergeSmartClipWarnings(result, clip);
+}
+
+function readSmartClipSubmissionBody(value: unknown): SmartClipSubmissionBody {
+  if (isSmartClipSubmissionBody(value)) return value;
+  throw new Error("SmartClip 剪藏参数无效");
+}
+
+// fallow-ignore-next-line complexity
+function isSmartClipSubmissionBody(value: unknown): value is SmartClipSubmissionBody {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.url === "string"
+    && record.url.trim().length > 0
+    && typeof record.body === "string"
+    && typeof record.now === "string"
+    && Array.isArray(record.mediaPaths);
+}
+
+function renderSmartClipMarkdown(userNote: string, clip: SmartClipMcpClipResult): string {
+  const note = userNote.trim();
+  return [
+    note ? `## 用户备注\n\n${note}` : "",
+    "## SmartClip 剪藏正文",
+    "",
+    clip.markdown.trim(),
+  ].filter(Boolean).join("\n\n");
+}
+
+function mergeSmartClipWarnings(
+  result: DesktopSubmissionResult,
+  clip: SmartClipMcpClipResult,
+): DesktopSubmissionResult {
+  const warnings = [
+    ...(Array.isArray(result.data?.warnings) ? result.data.warnings : []),
+    clip.warning,
+  ].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  return warnings.length > 0
+    ? { ...result, data: { ...result.data, warnings } }
+    : result;
 }
 
 const EXTERNAL_PROTOCOL_PATTERN = /^(?!https?:|file:|about:|data:|blob:)[a-z][a-z0-9+.\-]*:/i;
@@ -1892,6 +2607,11 @@ if (singleInstanceLock) {
         await createWindow();
       }
     });
+  }).catch((error) => {
+    const message = error instanceof Error ? error.stack || error.message : String(error);
+    console.error("Failed to start:", message);
+    void dialog.showErrorBox("启动失败", message);
+    app.quit();
   });
 }
 
@@ -1904,5 +2624,6 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   globalShortcut.unregisterAll();
+  stopSmartClipMcpClient();
   void stopWebServer();
 });
